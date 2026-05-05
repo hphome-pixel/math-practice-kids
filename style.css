@@ -456,38 +456,39 @@ h2 {
   }
 
   .question-card {
-    padding: 10px;
+    padding: 6px;
   }
 
   .question {
-    min-height: 500px;
-    font-size: clamp(3rem, 13vw, 4.6rem);
+    min-height: 560px;
+    font-size: clamp(3.4rem, 16vw, 5.2rem);
   }
 
   .worksheet {
-    --operator-col: 40px;
-    --cell-size: 86px;
-    gap: 8px;
+    --operator-col: 34px;
+    --cell-size: 88px;
+    width: 100%;
+    gap: 6px;
   }
 
   .worksheet.columns-1 {
-    --cell-size: 128px;
+    --cell-size: min(190px, 48vw);
   }
 
   .worksheet.columns-2 {
-    --cell-size: 112px;
+    --cell-size: min(150px, 38vw);
   }
 
   .worksheet.columns-3 {
-    --cell-size: 96px;
+    --cell-size: min(118px, 29vw);
   }
 
   .worksheet.columns-4 {
-    --cell-size: 76px;
+    --cell-size: min(91px, 22vw);
   }
 
   .worksheet.columns-5 {
-    --cell-size: 62px;
+    --cell-size: min(72px, 17vw);
   }
 
   .worksheet-cell {
@@ -495,11 +496,11 @@ h2 {
   }
 
   .carry-canvas {
-    min-height: 62px;
+    min-height: 76px;
   }
 
   .answer-canvas {
-    min-height: 92px;
+    min-height: 112px;
   }
 
   .preview-cell {
@@ -518,7 +519,14 @@ h2 {
   }
 
   .practice-panel {
-    padding: 8px;
+    padding: 6px;
+  }
+
+  .question-card {
+    gap: 14px;
+    margin-left: -4px;
+    margin-right: -4px;
+    padding: 4px 2px;
   }
 
   .segmented,
@@ -527,34 +535,35 @@ h2 {
   }
 
   .worksheet {
-    --operator-col: 28px;
-    --cell-size: 72px;
-    gap: 6px;
+    --operator-col: 26px;
+    --cell-size: 74px;
+    width: 100%;
+    gap: 4px;
   }
 
   .worksheet.columns-1 {
-    --cell-size: 132px;
+    --cell-size: min(200px, 52vw);
   }
 
   .worksheet.columns-2 {
-    --cell-size: 112px;
+    --cell-size: min(154px, 39vw);
   }
 
   .worksheet.columns-3 {
-    --cell-size: 88px;
+    --cell-size: min(122px, 30vw);
   }
 
   .worksheet.columns-4 {
-    --cell-size: 72px;
+    --cell-size: min(91px, 22vw);
   }
 
   .worksheet.columns-5 {
-    --cell-size: 58px;
+    --cell-size: min(72px, 17vw);
   }
 
   .question {
-    min-height: 470px;
-    font-size: clamp(3rem, 15vw, 4.2rem);
+    min-height: 540px;
+    font-size: clamp(3.5rem, 17vw, 5rem);
   }
 
   .worksheet-cell {
@@ -562,11 +571,11 @@ h2 {
   }
 
   .carry-canvas {
-    min-height: 58px;
+    min-height: 72px;
   }
 
   .answer-canvas {
-    min-height: 88px;
+    min-height: 112px;
   }
 
   .preview-cell {
