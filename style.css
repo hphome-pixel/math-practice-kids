@@ -109,20 +109,27 @@ h2 {
   gap: 12px;
 }
 
+.mode-grid,
 .segmented,
 .times-grid {
   display: grid;
   gap: 8px;
 }
 
+.mode-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .segmented {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .times-grid {
   grid-template-columns: repeat(10, minmax(0, 1fr));
 }
 
+.mode-card,
 .segmented label,
 .times-grid label,
 .option-card {
@@ -136,6 +143,24 @@ h2 {
     box-shadow 140ms ease;
 }
 
+.mode-card {
+  min-height: 116px;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  padding: 18px;
+}
+
+.mode-card span {
+  font-size: 1.2rem;
+  font-weight: 950;
+}
+
+.mode-card small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .segmented label,
 .times-grid label {
   min-height: 48px;
@@ -145,6 +170,7 @@ h2 {
   font-weight: 800;
 }
 
+.mode-card input,
 .segmented input,
 .times-grid input,
 .option-card input {
@@ -153,6 +179,7 @@ h2 {
   pointer-events: none;
 }
 
+.mode-card:has(input:checked),
 .segmented label:has(input:checked),
 .times-grid label:has(input:checked),
 .option-card:has(input:checked) {
@@ -160,6 +187,7 @@ h2 {
   box-shadow: 0 8px 20px rgba(47, 143, 111, 0.14);
 }
 
+.mode-card:hover,
 .segmented label:hover,
 .times-grid label:hover,
 .option-card:hover {
@@ -468,6 +496,7 @@ h2 {
   }
 
   .segmented,
+  .mode-grid,
   .times-grid,
   .option-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -548,6 +577,7 @@ h2 {
   }
 
   .segmented,
+  .mode-grid,
   .times-grid,
   .option-grid {
     grid-template-columns: 1fr;

@@ -14,10 +14,13 @@ const feedbackText = document.querySelector("#feedbackText");
 const resultScore = document.querySelector("#resultScore");
 const resultMessage = document.querySelector("#resultMessage");
 const clearWritingButton = document.querySelector("#clearWritingButton");
+const arithmeticSettings = document.querySelector("#arithmeticSettings");
+const multiplySettings = document.querySelector("#multiplySettings");
 let nextQuestionTimer = null;
 let digitTemplates = null;
 
 const state = {
+  practiceMode: "arithmetic",
   operation: "mixed",
   digits: 1,
   multiplyMode: "table-1",
@@ -36,10 +39,17 @@ document.querySelector("#againButton").addEventListener("click", startQuiz);
 document.querySelector("#changeButton").addEventListener("click", showSetup);
 answerForm.addEventListener("submit", checkAnswer);
 clearWritingButton.addEventListener("click", clearWriting);
+document.querySelectorAll("input[name='practiceMode']").forEach((input) => {
+  input.addEventListener("change", updateSetupMode);
+});
+updateSetupMode();
 
 function startQuiz() {
   clearNextQuestionTimer();
-  state.operation = document.querySelector("input[name='operation']:checked").value;
+  state.practiceMode = document.querySelector("input[name='practiceMode']:checked").value;
+  state.operation = state.practiceMode === "multiply"
+    ? "multiply"
+    : document.querySelector("input[name='operation']:checked").value;
   state.digits = Number(document.querySelector("input[name='digits']:checked").value);
   state.multiplyMode = document.querySelector("input[name='multiplyMode']:checked").value;
   state.current = 0;
@@ -52,6 +62,12 @@ function startQuiz() {
   feedbackText.className = "feedback";
   updateStars();
   nextQuestion();
+}
+
+function updateSetupMode() {
+  const practiceMode = document.querySelector("input[name='practiceMode']:checked").value;
+  arithmeticSettings.classList.toggle("hidden", practiceMode !== "arithmetic");
+  multiplySettings.classList.toggle("hidden", practiceMode !== "multiply");
 }
 
 function showSetup() {

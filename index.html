@@ -19,16 +19,29 @@
 
         <section class="setup-view" id="setupView">
           <div class="field-group">
-            <h2>選擇題型</h2>
-            <div class="segmented" role="radiogroup" aria-label="題型">
-              <label><input type="radio" name="operation" value="mixed" checked />加減混合</label>
-              <label><input type="radio" name="operation" value="add" />加法</label>
-              <label><input type="radio" name="operation" value="subtract" />減法</label>
-              <label><input type="radio" name="operation" value="multiply" />乘法</label>
+            <h2>選擇練習</h2>
+            <div class="mode-grid" role="radiogroup" aria-label="練習模式">
+              <label class="mode-card">
+                <input type="radio" name="practiceMode" value="arithmetic" checked />
+                <span>加減法練習</span>
+                <small>加法、減法、加減混合</small>
+              </label>
+              <label class="mode-card">
+                <input type="radio" name="practiceMode" value="multiply" />
+                <span>乘法練習</span>
+                <small>1 到 9 乘法表、十位乘法</small>
+              </label>
             </div>
           </div>
 
-          <div class="field-group">
+          <div class="field-group" id="arithmeticSettings">
+            <h2>選擇題型</h2>
+            <div class="segmented" role="radiogroup" aria-label="加減法題型">
+              <label><input type="radio" name="operation" value="mixed" checked />加減混合</label>
+              <label><input type="radio" name="operation" value="add" />加法</label>
+              <label><input type="radio" name="operation" value="subtract" />減法</label>
+            </div>
+
             <h2>選擇位數</h2>
             <div class="option-grid" role="radiogroup" aria-label="位數">
               <label class="option-card">
@@ -54,7 +67,7 @@
             </div>
           </div>
 
-          <div class="field-group">
+          <div class="field-group hidden" id="multiplySettings">
             <h2>乘法設定</h2>
             <div class="times-grid" role="radiogroup" aria-label="乘法設定">
               <label><input type="radio" name="multiplyMode" value="table-1" checked />1</label>
