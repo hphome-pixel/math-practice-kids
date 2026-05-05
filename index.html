@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>數學練習</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="practice-panel" aria-labelledby="app-title">
+        <div class="topbar">
+          <div>
+            <p class="eyebrow">Math Practice</p>
+            <h1 id="app-title">數學練習</h1>
+          </div>
+          <div class="stars" id="stars" aria-label="答對星星">☆☆☆☆☆</div>
+        </div>
+
+        <section class="setup-view" id="setupView">
+          <div class="field-group">
+            <h2>選擇題型</h2>
+            <div class="segmented" role="radiogroup" aria-label="題型">
+              <label><input type="radio" name="operation" value="mixed" checked />加減混合</label>
+              <label><input type="radio" name="operation" value="add" />加法</label>
+              <label><input type="radio" name="operation" value="subtract" />減法</label>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <h2>選擇位數</h2>
+            <div class="option-grid" role="radiogroup" aria-label="位數">
+              <label class="option-card">
+                <input type="radio" name="digits" value="1" checked />
+                <span>個位</span>
+                <small>0 到 10</small>
+              </label>
+              <label class="option-card">
+                <input type="radio" name="digits" value="2" />
+                <span>十位</span>
+                <small>10 到 99</small>
+              </label>
+              <label class="option-card">
+                <input type="radio" name="digits" value="3" />
+                <span>百位</span>
+                <small>100 到 999</small>
+              </label>
+              <label class="option-card">
+                <input type="radio" name="digits" value="4" />
+                <span>千位</span>
+                <small>1000 到 9999</small>
+              </label>
+            </div>
+          </div>
+
+          <button class="primary-button" id="startButton" type="button">開始 10 題</button>
+        </section>
+
+        <section class="quiz-view hidden" id="quizView" aria-live="polite">
+          <div class="quiz-actions">
+            <button class="secondary-button compact-button" id="stopButton" type="button">停止練習</button>
+          </div>
+          <div class="progress-row">
+            <span id="questionCount">第 1 / 10 題</span>
+            <span id="scoreText">答對 0 題</span>
+          </div>
+          <div class="progress-bar" aria-hidden="true">
+            <div id="progressFill"></div>
+          </div>
+
+          <div class="question-card">
+            <div class="question" id="questionText">3 + 4 = ?</div>
+            <form id="answerForm" autocomplete="off">
+              <input id="answerInput" name="answer" type="hidden" />
+              <button class="secondary-button" id="clearWritingButton" type="button">清除手寫</button>
+              <button class="primary-button" type="submit">確認</button>
+            </form>
+            <p class="feedback" id="feedbackText"></p>
+          </div>
+        </section>
+
+        <section class="result-view hidden" id="resultView">
+          <h2>練習完成</h2>
+          <div class="result-score" id="resultScore">8 / 10</div>
+          <p id="resultMessage">很棒，繼續保持！</p>
+          <div class="result-actions">
+            <button class="secondary-button" id="againButton" type="button">再練一次</button>
+            <button class="primary-button" id="changeButton" type="button">重新選擇</button>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
