@@ -260,9 +260,11 @@ h2 {
 
 .worksheet {
   position: relative;
+  --cell-size: clamp(82px, 12vw, 120px);
+  --operator-col: 58px;
   width: min(760px, 100%);
   display: grid;
-  grid-template-columns: 58px repeat(var(--columns), clamp(82px, 12vw, 120px));
+  grid-template-columns: var(--operator-col) repeat(var(--columns), var(--cell-size));
   gap: 10px;
   justify-content: center;
   justify-self: center;
@@ -424,11 +426,11 @@ h2 {
 
 @media (max-width: 720px) {
   .app-shell {
-    padding: 12px;
+    padding: 8px;
   }
 
   .practice-panel {
-    padding: 16px;
+    padding: 12px;
   }
 
   .topbar {
@@ -454,28 +456,55 @@ h2 {
   }
 
   .question-card {
-    padding: 12px;
+    padding: 10px;
   }
 
   .question {
-    min-height: 430px;
+    min-height: 500px;
+    font-size: clamp(3rem, 13vw, 4.6rem);
   }
 
   .worksheet {
-    grid-template-columns: 38px repeat(var(--columns), clamp(58px, 17vw, 86px));
-    gap: 7px;
+    --operator-col: 40px;
+    --cell-size: 86px;
+    gap: 8px;
+  }
+
+  .worksheet.columns-1 {
+    --cell-size: 128px;
+  }
+
+  .worksheet.columns-2 {
+    --cell-size: 112px;
+  }
+
+  .worksheet.columns-3 {
+    --cell-size: 96px;
+  }
+
+  .worksheet.columns-4 {
+    --cell-size: 76px;
+  }
+
+  .worksheet.columns-5 {
+    --cell-size: 62px;
   }
 
   .worksheet-cell {
-    min-height: 58px;
+    min-height: 74px;
   }
 
   .carry-canvas {
-    min-height: 46px;
+    min-height: 62px;
   }
 
   .answer-canvas {
-    min-height: 78px;
+    min-height: 92px;
+  }
+
+  .preview-cell {
+    min-height: 42px;
+    font-size: 1.55rem;
   }
 
   .digit-chooser {
@@ -484,23 +513,65 @@ h2 {
 }
 
 @media (max-width: 420px) {
+  .app-shell {
+    padding: 6px;
+  }
+
+  .practice-panel {
+    padding: 8px;
+  }
+
   .segmented,
   .option-grid {
     grid-template-columns: 1fr;
   }
 
   .worksheet {
-    grid-template-columns: 32px repeat(var(--columns), clamp(48px, 17vw, 72px));
-    gap: 5px;
+    --operator-col: 28px;
+    --cell-size: 72px;
+    gap: 6px;
+  }
+
+  .worksheet.columns-1 {
+    --cell-size: 132px;
+  }
+
+  .worksheet.columns-2 {
+    --cell-size: 112px;
+  }
+
+  .worksheet.columns-3 {
+    --cell-size: 88px;
+  }
+
+  .worksheet.columns-4 {
+    --cell-size: 72px;
+  }
+
+  .worksheet.columns-5 {
+    --cell-size: 58px;
   }
 
   .question {
-    min-height: 360px;
-    font-size: clamp(2rem, 12vw, 3.4rem);
+    min-height: 470px;
+    font-size: clamp(3rem, 15vw, 4.2rem);
+  }
+
+  .worksheet-cell {
+    min-height: 68px;
+  }
+
+  .carry-canvas {
+    min-height: 58px;
   }
 
   .answer-canvas {
-    min-height: 64px;
+    min-height: 88px;
+  }
+
+  .preview-cell {
+    min-height: 40px;
+    font-size: 1.5rem;
   }
 
   .digit-chooser {

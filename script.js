@@ -174,7 +174,7 @@ function renderQuestion(question) {
   const bottomCells = padDigits(bottomDigits, columns);
   questionText.className = "question vertical";
   questionText.innerHTML = `
-    <div class="worksheet" style="--columns: ${columns}" aria-label="${question.text}">
+    <div class="worksheet columns-${columns}" style="--columns: ${columns}" aria-label="${question.text}">
       <div class="worksheet-row scratch-row">
         <div class="worksheet-spacer"></div>
         ${makeCanvasCells(columns, "carry-canvas", "進位或借位")}
