@@ -20,6 +20,7 @@ let digitTemplates = null;
 const state = {
   operation: "mixed",
   digits: 1,
+  multiplyMode: "table-1",
   current: 0,
   score: 0,
   question: null,
@@ -40,6 +41,7 @@ function startQuiz() {
   clearNextQuestionTimer();
   state.operation = document.querySelector("input[name='operation']:checked").value;
   state.digits = Number(document.querySelector("input[name='digits']:checked").value);
+  state.multiplyMode = document.querySelector("input[name='multiplyMode']:checked").value;
   state.current = 0;
   state.score = 0;
 
@@ -75,7 +77,7 @@ function nextQuestion() {
     return;
   }
 
-  state.question = makeQuestion(state.operation, state.digits);
+  state.question = makeQuestion(state.operation, state.digits, state.multiplyMode);
   state.current += 1;
   state.locked = false;
   renderQuestion(state.question);
@@ -147,7 +149,7 @@ function updateStars() {
   stars.textContent = "★".repeat(filled) + "☆".repeat(5 - filled);
 }
 
-function makeQuestion(operation, digits) {
+function makeQuestion(operation, digits, multiplyMode) {
   const pickedOperation = operation === "mixed" ? pickOperation() : operation;
   const range = getRange(digits);
 
@@ -155,6 +157,10 @@ function makeQuestion(operation, digits) {
     const a = randomInt(range.min, range.max);
     const b = randomInt(range.min, range.max);
     return { text: `${a} + ${b} = ?`, answer: a + b, operation: "add", a, b };
+  }
+
+  if (pickedOperation === "multiply") {
+    return makeMultiplyQuestion(multiplyMode);
   }
 
   const first = randomInt(range.min, range.max);
@@ -165,7 +171,12 @@ function makeQuestion(operation, digits) {
 }
 
 function renderQuestion(question) {
-  const operator = question.operation === "add" ? "+" : "-";
+  const operatorByOperation = {
+    add: "+",
+    subtract: "-",
+    multiply: "×",
+  };
+  const operator = operatorByOperation[question.operation];
   const topDigits = String(question.a);
   const bottomDigits = String(question.b);
   const answerDigits = String(question.answer);
@@ -205,6 +216,24 @@ function renderQuestion(question) {
 function pickOperation() {
   const operations = ["add", "subtract"];
   return operations[randomInt(0, operations.length - 1)];
+}
+
+function makeMultiplyQuestion(multiplyMode) {
+  if (multiplyMode === "tens") {
+    const a = randomInt(10, 99);
+    const b = randomInt(2, 9);
+    return { text: `${a} × ${b} = ?`, answer: a * b, operation: "multiply", a, b };
+  }
+
+  const tableNumber = Number(multiplyMode.replace("table-", ""));
+  const b = randomInt(1, 9);
+  return {
+    text: `${tableNumber} × ${b} = ?`,
+    answer: tableNumber * b,
+    operation: "multiply",
+    a: tableNumber,
+    b,
+  };
 }
 
 function getRange(digits) {

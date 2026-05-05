@@ -109,13 +109,22 @@ h2 {
   gap: 12px;
 }
 
-.segmented {
+.segmented,
+.times-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
+.segmented {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.times-grid {
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+}
+
 .segmented label,
+.times-grid label,
 .option-card {
   cursor: pointer;
   border: 2px solid var(--line);
@@ -127,7 +136,8 @@ h2 {
     box-shadow 140ms ease;
 }
 
-.segmented label {
+.segmented label,
+.times-grid label {
   min-height: 48px;
   display: grid;
   place-items: center;
@@ -136,6 +146,7 @@ h2 {
 }
 
 .segmented input,
+.times-grid input,
 .option-card input {
   position: absolute;
   opacity: 0;
@@ -143,14 +154,20 @@ h2 {
 }
 
 .segmented label:has(input:checked),
+.times-grid label:has(input:checked),
 .option-card:has(input:checked) {
   border-color: var(--green);
   box-shadow: 0 8px 20px rgba(47, 143, 111, 0.14);
 }
 
 .segmented label:hover,
+.times-grid label:hover,
 .option-card:hover {
   transform: translateY(-1px);
+}
+
+.wide-option {
+  min-width: 110px;
 }
 
 .option-grid {
@@ -451,6 +468,7 @@ h2 {
   }
 
   .segmented,
+  .times-grid,
   .option-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -530,6 +548,7 @@ h2 {
   }
 
   .segmented,
+  .times-grid,
   .option-grid {
     grid-template-columns: 1fr;
   }
