@@ -426,18 +426,32 @@ h2 {
 }
 
 .feedback {
-  min-height: 32px;
+  min-height: 0;
   margin: 0;
   font-weight: 900;
   color: var(--muted);
 }
 
+.feedback-card {
+  display: grid;
+  place-items: center;
+  min-height: 76px;
+  border: 2px solid currentColor;
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+  font-size: clamp(1.4rem, 4vw, 2.2rem);
+  line-height: 1.2;
+}
+
 .feedback.correct {
   color: var(--green);
+  background: rgba(47, 143, 111, 0.08);
 }
 
 .feedback.wrong {
   color: var(--coral);
+  background: rgba(233, 111, 85, 0.08);
 }
 
 .result-view {

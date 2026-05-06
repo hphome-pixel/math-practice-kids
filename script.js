@@ -14,6 +14,7 @@ const feedbackText = document.querySelector("#feedbackText");
 const resultScore = document.querySelector("#resultScore");
 const resultMessage = document.querySelector("#resultMessage");
 const clearWritingButton = document.querySelector("#clearWritingButton");
+const submitAnswerButton = document.querySelector("#submitAnswerButton");
 const arithmeticSettings = document.querySelector("#arithmeticSettings");
 const multiplySettings = document.querySelector("#multiplySettings");
 let nextQuestionTimer = null;
@@ -28,6 +29,7 @@ const state = {
   score: 0,
   question: null,
   locked: false,
+  awaitingNext: false,
   answerBoxes: [],
   scratchBoxes: [],
   previewCells: [],
@@ -54,6 +56,7 @@ function startQuiz() {
   state.multiplyMode = document.querySelector("input[name='multiplyMode']:checked").value;
   state.current = 0;
   state.score = 0;
+  state.awaitingNext = false;
 
   setupView.classList.add("hidden");
   resultView.classList.add("hidden");
@@ -73,6 +76,9 @@ function updateSetupMode() {
 function showSetup() {
   clearNextQuestionTimer();
   state.locked = false;
+  state.awaitingNext = false;
+  submitAnswerButton.disabled = false;
+  submitAnswerButton.textContent = "確認";
   resultView.classList.add("hidden");
   quizView.classList.add("hidden");
   setupView.classList.remove("hidden");
@@ -96,19 +102,27 @@ function nextQuestion() {
   state.question = makeQuestion(state.operation, state.digits, state.multiplyMode);
   state.current += 1;
   state.locked = false;
+  state.awaitingNext = false;
   renderQuestion(state.question);
   clearWriting();
   feedbackText.textContent = "";
-  feedbackText.className = "feedback";
+  feedbackText.className = "feedback hidden";
   questionCount.textContent = `第 ${state.current} / ${TOTAL_QUESTIONS} 題`;
   scoreText.textContent = `答對 ${state.score} 題`;
   progressFill.style.width = `${((state.current - 1) / TOTAL_QUESTIONS) * 100}%`;
   answerInput.value = "";
+  submitAnswerButton.disabled = false;
+  submitAnswerButton.textContent = "確認";
   setWritingDisabled(false);
 }
 
 function checkAnswer(event) {
   event.preventDefault();
+
+  if (state.awaitingNext) {
+    nextQuestion();
+    return;
+  }
 
   if (state.locked) {
     return;
@@ -119,7 +133,7 @@ function checkAnswer(event) {
 
   if (writtenAnswer === "") {
     feedbackText.textContent = "先在答案格寫答案喔";
-    feedbackText.className = "feedback wrong";
+    feedbackText.className = "feedback feedback-card wrong";
     return;
   }
 
@@ -130,17 +144,22 @@ function checkAnswer(event) {
 
   if (isCorrect) {
     state.score += 1;
-    feedbackText.textContent = "答對了，很棒！";
-    feedbackText.className = "feedback correct";
+    feedbackText.textContent = "答對了！";
+    feedbackText.className = "feedback feedback-card correct";
+    submitAnswerButton.disabled = true;
   } else {
-    feedbackText.textContent = `差一點，正確答案是 ${state.question.answer}`;
-    feedbackText.className = "feedback wrong";
+    feedbackText.textContent = `差一點！答案是 ${state.question.answer}`;
+    feedbackText.className = "feedback feedback-card wrong";
+    state.awaitingNext = true;
+    submitAnswerButton.textContent = "下一題";
   }
 
   updateStars();
   scoreText.textContent = `答對 ${state.score} 題`;
   progressFill.style.width = `${(state.current / TOTAL_QUESTIONS) * 100}%`;
-  nextQuestionTimer = setTimeout(nextQuestion, isCorrect ? 650 : 1150);
+  if (isCorrect) {
+    nextQuestionTimer = setTimeout(nextQuestion, 700);
+  }
 }
 
 function showResult() {
