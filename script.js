@@ -14,6 +14,8 @@ const answerInput = document.querySelector("#answerInput");
 const feedbackText = document.querySelector("#feedbackText");
 const resultScore = document.querySelector("#resultScore");
 const resultMessage = document.querySelector("#resultMessage");
+const reviewPanel = document.querySelector("#reviewPanel");
+const reviewList = document.querySelector("#reviewList");
 const clearWritingButton = document.querySelector("#clearWritingButton");
 const submitAnswerButton = document.querySelector("#submitAnswerButton");
 const startButton = document.querySelector("#startButton");
@@ -22,6 +24,7 @@ const multiplySettings = document.querySelector("#multiplySettings");
 const divideSettings = document.querySelector("#divideSettings");
 const reciteTitle = document.querySelector("#reciteTitle");
 const reciteList = document.querySelector("#reciteList");
+const toggleAnswersButton = document.querySelector("#toggleAnswersButton");
 let nextQuestionTimer = null;
 let digitTemplates = null;
 
@@ -31,9 +34,13 @@ const state = {
   digits: 1,
   multiplyMode: "table-1",
   divideMode: "divide-1",
+  totalQuestions: TOTAL_QUESTIONS,
   current: 0,
   score: 0,
   question: null,
+  questionQueue: null,
+  reviewRecords: [],
+  reciteAnswersHidden: false,
   locked: false,
   awaitingNext: false,
   answerBoxes: [],
@@ -45,7 +52,9 @@ startButton.addEventListener("click", startQuiz);
 document.querySelector("#stopButton").addEventListener("click", stopQuiz);
 document.querySelector("#againButton").addEventListener("click", startQuiz);
 document.querySelector("#changeButton").addEventListener("click", showSetup);
+document.querySelector("#wrongOnlyButton").addEventListener("click", startWrongOnlyQuiz);
 document.querySelector("#reciteBackButton").addEventListener("click", showSetup);
+toggleAnswersButton.addEventListener("click", toggleReciteAnswers);
 document.querySelector("#prevTableButton").addEventListener("click", () => changeReciteTable(-1));
 document.querySelector("#nextTableButton").addEventListener("click", () => changeReciteTable(1));
 answerForm.addEventListener("submit", checkAnswer);
@@ -73,6 +82,9 @@ function startQuiz() {
 
   state.current = 0;
   state.score = 0;
+  state.totalQuestions = TOTAL_QUESTIONS;
+  state.questionQueue = null;
+  state.reviewRecords = [];
   state.awaitingNext = false;
 
   setupView.classList.add("hidden");
@@ -105,6 +117,7 @@ function showSetup() {
   clearNextQuestionTimer();
   state.locked = false;
   state.awaitingNext = false;
+  state.questionQueue = null;
   submitAnswerButton.disabled = false;
   submitAnswerButton.textContent = "確認";
   resultView.classList.add("hidden");
@@ -122,6 +135,32 @@ function stopQuiz() {
   showSetup();
 }
 
+function startWrongOnlyQuiz() {
+  const wrongQuestions = state.reviewRecords
+    .filter((record) => !record.isCorrect)
+    .map((record) => ({ ...record.question }));
+
+  if (wrongQuestions.length === 0) {
+    return;
+  }
+
+  clearNextQuestionTimer();
+  state.questionQueue = wrongQuestions;
+  state.totalQuestions = wrongQuestions.length;
+  state.current = 0;
+  state.score = 0;
+  state.reviewRecords = [];
+  state.awaitingNext = false;
+  setupView.classList.add("hidden");
+  reciteView.classList.add("hidden");
+  resultView.classList.add("hidden");
+  quizView.classList.remove("hidden");
+  feedbackText.textContent = "";
+  feedbackText.className = "feedback";
+  updateStars();
+  nextQuestion();
+}
+
 function showRecitation(tableNumber) {
   state.multiplyMode = `recite-${tableNumber}`;
   setupView.classList.add("hidden");
@@ -129,7 +168,19 @@ function showRecitation(tableNumber) {
   resultView.classList.add("hidden");
   reciteView.classList.remove("hidden");
   stars.textContent = "☆☆☆☆☆";
+  updateReciteToggleButton();
   renderRecitationTable(tableNumber);
+}
+
+function toggleReciteAnswers() {
+  state.reciteAnswersHidden = !state.reciteAnswersHidden;
+  const tableNumber = Number(state.multiplyMode.replace("recite-", "")) || 1;
+  updateReciteToggleButton();
+  renderRecitationTable(tableNumber);
+}
+
+function updateReciteToggleButton() {
+  toggleAnswersButton.textContent = state.reciteAnswersHidden ? "顯示答案" : "遮住答案";
 }
 
 function changeReciteTable(offset) {
@@ -146,22 +197,25 @@ function renderRecitationTable(tableNumber) {
   reciteTitle.textContent = `${tableNumber} 的乘法表`;
   reciteList.innerHTML = Array.from({ length: 9 }, (_, index) => {
     const multiplier = index + 1;
+    const answer = tableNumber * multiplier;
     return `
       <div class="recite-row">
         <span>${tableNumber} × ${multiplier}</span>
-        <strong>${tableNumber * multiplier}</strong>
+        <strong class="${state.reciteAnswersHidden ? "hidden-answer" : ""}">${state.reciteAnswersHidden ? "?" : answer}</strong>
       </div>
     `;
   }).join("");
 }
 
 function nextQuestion() {
-  if (state.current >= TOTAL_QUESTIONS) {
+  if (state.current >= state.totalQuestions) {
     showResult();
     return;
   }
 
-  state.question = makeQuestion(state.operation, state.digits, state.multiplyMode, state.divideMode);
+  state.question = state.questionQueue
+    ? state.questionQueue[state.current]
+    : makeQuestion(state.operation, state.digits, state.multiplyMode, state.divideMode);
   state.current += 1;
   state.locked = false;
   state.awaitingNext = false;
@@ -169,9 +223,9 @@ function nextQuestion() {
   clearWriting();
   feedbackText.textContent = "";
   feedbackText.className = "feedback hidden";
-  questionCount.textContent = `第 ${state.current} / ${TOTAL_QUESTIONS} 題`;
+  questionCount.textContent = `第 ${state.current} / ${state.totalQuestions} 題`;
   scoreText.textContent = `答對 ${state.score} 題`;
-  progressFill.style.width = `${((state.current - 1) / TOTAL_QUESTIONS) * 100}%`;
+  progressFill.style.width = `${((state.current - 1) / state.totalQuestions) * 100}%`;
   answerInput.value = "";
   submitAnswerButton.disabled = false;
   submitAnswerButton.textContent = "確認";
@@ -203,6 +257,11 @@ function checkAnswer(event) {
   setWritingDisabled(true);
   const userAnswer = Number(writtenAnswer);
   const isCorrect = userAnswer === state.question.answer;
+  state.reviewRecords.push({
+    question: { ...state.question },
+    userAnswer: writtenAnswer,
+    isCorrect,
+  });
 
   if (isCorrect) {
     state.score += 1;
@@ -218,7 +277,7 @@ function checkAnswer(event) {
 
   updateStars();
   scoreText.textContent = `答對 ${state.score} 題`;
-  progressFill.style.width = `${(state.current / TOTAL_QUESTIONS) * 100}%`;
+  progressFill.style.width = `${(state.current / state.totalQuestions) * 100}%`;
   if (isCorrect) {
     nextQuestionTimer = setTimeout(nextQuestion, 1000);
   }
@@ -227,23 +286,44 @@ function checkAnswer(event) {
 function showResult() {
   quizView.classList.add("hidden");
   resultView.classList.remove("hidden");
-  resultScore.textContent = `${state.score} / ${TOTAL_QUESTIONS}`;
+  resultScore.textContent = `${state.score} / ${state.totalQuestions}`;
   progressFill.style.width = "100%";
 
-  if (state.score === TOTAL_QUESTIONS) {
+  if (state.score === state.totalQuestions) {
     resultMessage.textContent = "全部答對，太厲害了！";
-  } else if (state.score >= 8) {
+  } else if (state.score / state.totalQuestions >= 0.8) {
     resultMessage.textContent = "很棒，繼續保持！";
-  } else if (state.score >= 5) {
+  } else if (state.score / state.totalQuestions >= 0.5) {
     resultMessage.textContent = "有進步，再練一輪會更熟。";
   } else {
     resultMessage.textContent = "慢慢來，每次多會一點就很好。";
   }
+
+  renderReviewRecords();
 }
 
 function updateStars() {
-  const filled = Math.round((state.score / TOTAL_QUESTIONS) * 5);
+  const filled = Math.round((state.score / state.totalQuestions) * 5);
   stars.textContent = "★".repeat(filled) + "☆".repeat(5 - filled);
+}
+
+function renderReviewRecords() {
+  const wrongCount = state.reviewRecords.filter((record) => !record.isCorrect).length;
+  document.querySelector("#wrongOnlyButton").classList.toggle("hidden", wrongCount === 0);
+  reviewPanel.classList.toggle("hidden", state.reviewRecords.length === 0);
+  reviewList.innerHTML = state.reviewRecords.map((record, index) => {
+    const status = record.isCorrect ? "答對" : "答錯";
+    const answerText = record.isCorrect
+      ? `你寫 ${record.userAnswer}`
+      : `你寫 ${record.userAnswer}，答案是 ${record.question.answer}`;
+    return `
+      <div class="review-row ${record.isCorrect ? "correct" : "wrong"}">
+        <span>第 ${index + 1} 題</span>
+        <strong>${record.question.text.replace("?", record.question.answer)}</strong>
+        <small>${status}：${answerText}</small>
+      </div>
+    `;
+  }).join("");
 }
 
 function makeQuestion(operation, digits, multiplyMode, divideMode) {
@@ -837,6 +917,10 @@ function updateAnswerPreview() {
 
     const digit = box.manualDigit ?? recognizeDigit(box);
     previewCell.textContent = digit ?? "-";
+    previewCell.setAttribute(
+      "aria-label",
+      digit === null ? "尚未辨識，點選可手動選答案" : `辨識為 ${digit}，點選可修改`,
+    );
     previewCell.classList.toggle("empty", digit === null);
     previewCell.classList.toggle("manual", box.manualDigit !== null);
   });

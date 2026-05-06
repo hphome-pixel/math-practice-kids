@@ -328,6 +328,10 @@ h2 {
   text-align: right;
 }
 
+.recite-row .hidden-answer {
+  color: var(--coral);
+}
+
 .progress-row {
   display: flex;
   justify-content: space-between;
@@ -436,6 +440,12 @@ h2 {
   border-style: dashed;
 }
 
+.long-division-scratch .scratch-canvas {
+  background:
+    linear-gradient(90deg, transparent 49%, rgba(76, 123, 217, 0.18) 49%, rgba(76, 123, 217, 0.18) 51%, transparent 51%),
+    #ffffff;
+}
+
 .preview-cell {
   min-height: 34px;
   border: 0;
@@ -445,6 +455,16 @@ h2 {
   font-weight: 950;
   line-height: 1;
   cursor: pointer;
+  display: grid;
+  gap: 2px;
+  place-items: center;
+}
+
+.preview-cell::after {
+  content: "點我改";
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
 }
 
 .preview-cell.empty {
@@ -452,7 +472,16 @@ h2 {
   opacity: 0.35;
 }
 
+.preview-cell.empty::after {
+  content: "辨識";
+}
+
 .preview-cell.manual {
+  color: var(--green);
+}
+
+.preview-cell.manual::after {
+  content: "已修改";
   color: var(--green);
 }
 
@@ -599,6 +628,11 @@ h2 {
 .long-dividend-digit {
   display: grid;
   place-items: center;
+  border-left: 1px dashed rgba(76, 123, 217, 0.18);
+}
+
+.long-dividend-digit:first-child {
+  border-left: 0;
 }
 
 #answerForm {
@@ -653,6 +687,60 @@ h2 {
   color: var(--muted);
   font-size: 1.15rem;
   font-weight: 800;
+}
+
+.review-panel {
+  width: min(720px, 100%);
+  display: grid;
+  gap: 12px;
+  text-align: left;
+}
+
+.review-panel h2 {
+  margin-bottom: 0;
+}
+
+.review-list {
+  display: grid;
+  gap: 8px;
+}
+
+.review-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  align-items: center;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+}
+
+.review-row span {
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.review-row strong {
+  font-size: 1.15rem;
+}
+
+.review-row small {
+  grid-column: 2;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.review-row.correct {
+  border-color: rgba(47, 143, 111, 0.35);
+}
+
+.review-row.wrong {
+  border-color: rgba(233, 111, 85, 0.45);
+}
+
+.review-row.wrong small {
+  color: var(--coral);
 }
 
 .result-actions {

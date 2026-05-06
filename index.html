@@ -151,6 +151,7 @@
           <div class="recite-header">
             <button class="secondary-button compact-button" id="reciteBackButton" type="button">回主選單</button>
             <div class="recite-switcher" aria-label="切換乘法表">
+              <button class="secondary-button compact-button" id="toggleAnswersButton" type="button">遮住答案</button>
               <button class="secondary-button compact-button" id="prevTableButton" type="button">上一表</button>
               <button class="secondary-button compact-button" id="nextTableButton" type="button">下一表</button>
             </div>
@@ -165,7 +166,12 @@
           <h2>練習完成</h2>
           <div class="result-score" id="resultScore">8 / 10</div>
           <p id="resultMessage">很棒，繼續保持！</p>
+          <div class="review-panel hidden" id="reviewPanel">
+            <h2>答題紀錄</h2>
+            <div class="review-list" id="reviewList"></div>
+          </div>
           <div class="result-actions">
+            <button class="secondary-button hidden" id="wrongOnlyButton" type="button">只練錯題</button>
             <button class="secondary-button" id="againButton" type="button">再練一次</button>
             <button class="primary-button" id="changeButton" type="button">重新選擇</button>
           </div>
