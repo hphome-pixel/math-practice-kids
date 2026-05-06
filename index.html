@@ -48,6 +48,35 @@
                 <span>除法練習</span>
                 <small>除以 1 到 9、十位除法</small>
               </label>
+              <label class="mode-card game-mode-card">
+                <input type="radio" name="practiceMode" value="miniGames" />
+                <strong class="mode-symbol">★</strong>
+                <span>小遊戲</span>
+                <small>打怪練習、拼圖解鎖</small>
+              </label>
+            </div>
+          </div>
+
+          <div class="field-group hidden" id="miniGameSettings">
+            <h2>選擇小遊戲</h2>
+            <div class="mini-game-grid" role="radiogroup" aria-label="小遊戲">
+              <label class="option-card">
+                <input type="radio" name="miniGameMode" value="monster" checked />
+                <span>打怪練習</span>
+                <small>先選題型，答對攻擊</small>
+              </label>
+              <label class="option-card">
+                <input type="radio" name="miniGameMode" value="puzzle" />
+                <span>拼圖解鎖</span>
+                <small>答對一題，解鎖一片圖片</small>
+              </label>
+            </div>
+            <h2>選擇題目</h2>
+            <div class="segmented mini-operation-options" role="radiogroup" aria-label="小遊戲題目">
+              <label><input type="radio" name="miniGameOperation" value="add" checked />加法</label>
+              <label><input type="radio" name="miniGameOperation" value="subtract" />減法</label>
+              <label><input type="radio" name="miniGameOperation" value="multiply" />乘法</label>
+              <label><input type="radio" name="miniGameOperation" value="mixed" />混合</label>
             </div>
           </div>
 
@@ -143,7 +172,7 @@
             </div>
           </div>
 
-          <div class="field-group">
+          <div class="field-group" id="practiceOptions">
             <h2>練習選項</h2>
             <div class="settings-grid">
               <label class="toggle-card">
@@ -195,6 +224,46 @@
               <button class="secondary-button" id="clearWritingButton" type="button">清除手寫</button>
               <button class="primary-button" id="submitAnswerButton" type="submit">確認</button>
             </form>
+          </div>
+        </section>
+
+        <section class="monster-view hidden" id="monsterView" aria-live="polite">
+          <div class="quiz-actions">
+            <button class="secondary-button compact-button" id="monsterStopButton" type="button">停止遊戲</button>
+          </div>
+          <div class="monster-hud">
+            <span id="monsterQuestionCount">第 1 / 10 題</span>
+            <span id="monsterScoreText">打中 0 次</span>
+          </div>
+          <div class="monster-card">
+            <div class="monster-scene">
+              <div class="monster" id="monsterEnemy" aria-label="怪物">
+                <span class="monster-face">×</span>
+              </div>
+              <div class="monster-health" aria-hidden="true">
+                <div id="monsterHealthFill"></div>
+              </div>
+            </div>
+            <div class="monster-question" id="monsterQuestion">3 × 4 = ?</div>
+            <div class="choice-grid" id="monsterChoices"></div>
+            <p class="feedback hidden" id="monsterFeedback"></p>
+          </div>
+        </section>
+
+        <section class="puzzle-view hidden" id="puzzleView" aria-live="polite">
+          <div class="quiz-actions">
+            <button class="secondary-button compact-button" id="puzzleStopButton" type="button">停止遊戲</button>
+          </div>
+          <div class="puzzle-hud">
+            <span id="puzzleQuestionCount">第 1 / 9 題</span>
+            <span id="puzzleScoreText">解鎖 0 / 9 片</span>
+          </div>
+          <div class="puzzle-card">
+            <div class="puzzle-board" id="puzzleBoard"></div>
+            <div class="puzzle-question" id="puzzleQuestion">3 + 4 = ?</div>
+            <div class="choice-grid" id="puzzleChoices"></div>
+            <p class="feedback hidden" id="puzzleFeedback"></p>
+            <button class="primary-button hidden" id="puzzleResultButton" type="button">看成績</button>
           </div>
         </section>
 

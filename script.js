@@ -1,8 +1,11 @@
 const TOTAL_QUESTIONS = 10;
+const PUZZLE_QUESTIONS = 9;
 
 const setupView = document.querySelector("#setupView");
 const settingsView = document.querySelector("#settingsView");
 const quizView = document.querySelector("#quizView");
+const monsterView = document.querySelector("#monsterView");
+const puzzleView = document.querySelector("#puzzleView");
 const reciteView = document.querySelector("#reciteView");
 const resultView = document.querySelector("#resultView");
 const stars = document.querySelector("#stars");
@@ -24,6 +27,8 @@ const settingsButton = document.querySelector("#settingsButton");
 const arithmeticSettings = document.querySelector("#arithmeticSettings");
 const multiplySettings = document.querySelector("#multiplySettings");
 const divideSettings = document.querySelector("#divideSettings");
+const miniGameSettings = document.querySelector("#miniGameSettings");
+const practiceOptions = document.querySelector("#practiceOptions");
 const addDifficultySettings = document.querySelector("#addDifficultySettings");
 const subtractDifficultySettings = document.querySelector("#subtractDifficultySettings");
 const reciteTitle = document.querySelector("#reciteTitle");
@@ -34,6 +39,20 @@ const soundToggle = document.querySelector("#soundToggle");
 const timeLimitInput = document.querySelector("#timeLimitInput");
 const timerText = document.querySelector("#timerText");
 const dailySummary = document.querySelector("#dailySummary");
+const monsterQuestionCount = document.querySelector("#monsterQuestionCount");
+const monsterScoreText = document.querySelector("#monsterScoreText");
+const monsterQuestion = document.querySelector("#monsterQuestion");
+const monsterChoices = document.querySelector("#monsterChoices");
+const monsterFeedback = document.querySelector("#monsterFeedback");
+const monsterHealthFill = document.querySelector("#monsterHealthFill");
+const monsterEnemy = document.querySelector("#monsterEnemy");
+const puzzleQuestionCount = document.querySelector("#puzzleQuestionCount");
+const puzzleScoreText = document.querySelector("#puzzleScoreText");
+const puzzleQuestion = document.querySelector("#puzzleQuestion");
+const puzzleChoices = document.querySelector("#puzzleChoices");
+const puzzleFeedback = document.querySelector("#puzzleFeedback");
+const puzzleBoard = document.querySelector("#puzzleBoard");
+const puzzleResultButton = document.querySelector("#puzzleResultButton");
 let nextQuestionTimer = null;
 let quizTimer = null;
 let digitTemplates = null;
@@ -45,6 +64,8 @@ const state = {
   digits: 1,
   multiplyMode: "table-1",
   divideMode: "divide-1",
+  miniGameMode: "monster",
+  miniGameOperation: "add",
   addDifficulty: "any",
   subtractDifficulty: "any",
   timedMode: false,
@@ -56,6 +77,17 @@ const state = {
   question: null,
   questionQueue: null,
   reviewRecords: [],
+  monsterCurrent: 0,
+  monsterScore: 0,
+  monsterQuestion: null,
+  monsterLocked: false,
+  puzzleCurrent: 0,
+  puzzleScore: 0,
+  puzzleQuestion: null,
+  puzzleLocked: false,
+  puzzleImage: null,
+  puzzleRevealOrder: [],
+  puzzleUnlockedPieces: [],
   reciteAnswersHidden: false,
   locked: false,
   awaitingNext: false,
@@ -71,6 +103,9 @@ document.querySelector("#changeButton").addEventListener("click", showSetup);
 document.querySelector("#wrongOnlyButton").addEventListener("click", startWrongOnlyQuiz);
 settingsButton.addEventListener("click", showSettings);
 document.querySelector("#settingsBackButton").addEventListener("click", showSetup);
+document.querySelector("#monsterStopButton").addEventListener("click", showSetup);
+document.querySelector("#puzzleStopButton").addEventListener("click", showSetup);
+document.querySelector("#puzzleResultButton").addEventListener("click", showPuzzleResult);
 document.querySelector("#reciteBackButton").addEventListener("click", showSetup);
 toggleAnswersButton.addEventListener("click", toggleReciteAnswers);
 document.querySelector("#prevTableButton").addEventListener("click", () => changeReciteTable(-1));
@@ -81,6 +116,12 @@ document.querySelectorAll("input[name='practiceMode']").forEach((input) => {
   input.addEventListener("change", updateSetupMode);
 });
 document.querySelectorAll("input[name='multiplyMode']").forEach((input) => {
+  input.addEventListener("change", updateStartButtonText);
+});
+document.querySelectorAll("input[name='miniGameMode']").forEach((input) => {
+  input.addEventListener("change", updateStartButtonText);
+});
+document.querySelectorAll("input[name='miniGameOperation']").forEach((input) => {
   input.addEventListener("change", updateStartButtonText);
 });
 timedModeToggle.addEventListener("change", updateStartButtonText);
@@ -99,6 +140,8 @@ function startQuiz() {
   state.digits = Number(document.querySelector("input[name='digits']:checked").value);
   state.multiplyMode = document.querySelector("input[name='multiplyMode']:checked").value;
   state.divideMode = document.querySelector("input[name='divideMode']:checked").value;
+  state.miniGameMode = document.querySelector("input[name='miniGameMode']:checked").value;
+  state.miniGameOperation = document.querySelector("input[name='miniGameOperation']:checked").value;
   state.addDifficulty = document.querySelector("input[name='addDifficulty']:checked").value;
   state.subtractDifficulty = document.querySelector("input[name='subtractDifficulty']:checked").value;
   state.timedMode = timedModeToggle.checked;
@@ -107,6 +150,15 @@ function startQuiz() {
 
   if (state.practiceMode === "multiply" && state.multiplyMode.startsWith("recite-")) {
     showRecitation(Number(state.multiplyMode.replace("recite-", "")));
+    return;
+  }
+
+  if (state.practiceMode === "miniGames") {
+    if (state.miniGameMode === "puzzle") {
+      startPuzzleGame();
+    } else {
+      startMonsterGame();
+    }
     return;
   }
 
@@ -120,6 +172,8 @@ function startQuiz() {
 
   setupView.classList.add("hidden");
   settingsView.classList.add("hidden");
+  monsterView.classList.add("hidden");
+  puzzleView.classList.add("hidden");
   reciteView.classList.add("hidden");
   resultView.classList.add("hidden");
   quizView.classList.remove("hidden");
@@ -135,20 +189,26 @@ function startQuiz() {
 
 function updateSetupMode() {
   const practiceMode = document.querySelector("input[name='practiceMode']:checked").value;
-  const isArithmetic = practiceMode === "add" || practiceMode === "subtract";
+  const effectiveMode = practiceMode;
+  const isArithmetic = effectiveMode === "add" || effectiveMode === "subtract";
+  miniGameSettings.classList.toggle("hidden", practiceMode !== "miniGames");
   arithmeticSettings.classList.toggle("hidden", !isArithmetic);
-  addDifficultySettings.classList.toggle("hidden", practiceMode !== "add");
-  subtractDifficultySettings.classList.toggle("hidden", practiceMode !== "subtract");
-  multiplySettings.classList.toggle("hidden", practiceMode !== "multiply");
-  divideSettings.classList.toggle("hidden", practiceMode !== "divide");
+  practiceOptions.classList.toggle("hidden", practiceMode === "miniGames");
+  addDifficultySettings.classList.toggle("hidden", effectiveMode !== "add");
+  subtractDifficultySettings.classList.toggle("hidden", effectiveMode !== "subtract");
+  multiplySettings.classList.toggle("hidden", effectiveMode !== "multiply");
+  divideSettings.classList.toggle("hidden", effectiveMode !== "divide");
   updateStartButtonText();
 }
 
 function updateStartButtonText() {
   const practiceMode = document.querySelector("input[name='practiceMode']:checked").value;
   const multiplyMode = document.querySelector("input[name='multiplyMode']:checked").value;
+  const miniGameMode = document.querySelector("input[name='miniGameMode']:checked").value;
   if (practiceMode === "multiply" && multiplyMode.startsWith("recite-")) {
     startButton.textContent = "開始背誦";
+  } else if (practiceMode === "miniGames") {
+    startButton.textContent = miniGameMode === "puzzle" ? "開始解鎖" : "開始遊戲";
   } else {
     startButton.textContent = timedModeToggle.checked ? `開始 ${getTimeLimitSeconds()} 秒` : "開始 10 題";
   }
@@ -175,9 +235,12 @@ function showSetup() {
   submitAnswerButton.textContent = "確認";
   resultView.classList.add("hidden");
   settingsView.classList.add("hidden");
+  monsterView.classList.add("hidden");
+  puzzleView.classList.add("hidden");
   quizView.classList.add("hidden");
   reciteView.classList.add("hidden");
   setupView.classList.remove("hidden");
+  puzzleResultButton.classList.add("hidden");
   stars.textContent = "☆☆☆☆☆";
   timerText.classList.add("hidden");
   setWritingDisabled(false);
@@ -191,6 +254,8 @@ function showSettings() {
   clearQuizTimer();
   setupView.classList.add("hidden");
   quizView.classList.add("hidden");
+  monsterView.classList.add("hidden");
+  puzzleView.classList.add("hidden");
   reciteView.classList.add("hidden");
   resultView.classList.add("hidden");
   settingsView.classList.remove("hidden");
@@ -198,6 +263,407 @@ function showSettings() {
 
 function stopQuiz() {
   showSetup();
+}
+
+function startMonsterGame() {
+  clearNextQuestionTimer();
+  clearQuizTimer();
+  state.monsterCurrent = 0;
+  state.monsterScore = 0;
+  state.score = 0;
+  state.monsterLocked = false;
+  state.reviewRecords = [];
+  setupView.classList.add("hidden");
+  settingsView.classList.add("hidden");
+  quizView.classList.add("hidden");
+  puzzleView.classList.add("hidden");
+  reciteView.classList.add("hidden");
+  resultView.classList.add("hidden");
+  monsterView.classList.remove("hidden");
+  stars.textContent = "☆☆☆☆☆";
+  nextMonsterQuestion();
+}
+
+function nextMonsterQuestion() {
+  if (state.monsterCurrent >= TOTAL_QUESTIONS) {
+    showMonsterResult();
+    return;
+  }
+
+  state.monsterCurrent += 1;
+  state.monsterLocked = false;
+  state.monsterQuestion = makeMonsterQuestion();
+  monsterQuestionCount.textContent = `第 ${state.monsterCurrent} / ${TOTAL_QUESTIONS} 題`;
+  monsterScoreText.textContent = `打中 ${state.monsterScore} 次`;
+  monsterQuestion.textContent = state.monsterQuestion.text;
+  monsterFeedback.textContent = "";
+  monsterFeedback.className = "feedback hidden";
+  monsterEnemy.classList.remove("hit", "miss");
+  renderMonsterHealth();
+  renderMonsterChoices();
+}
+
+function makeMonsterQuestion() {
+  return makeMiniGameQuestion("monster");
+}
+
+function makeMiniGameQuestion(gameType) {
+  const selectedOperation = state.miniGameOperation || "add";
+  const operations = ["add", "subtract", "multiply"];
+  const operation = selectedOperation === "mixed"
+    ? operations[randomInt(0, operations.length - 1)]
+    : selectedOperation;
+
+  if (operation === "multiply") {
+    const a = randomInt(2, 9);
+    const b = randomInt(2, 9);
+    const answer = a * b;
+    return {
+      text: `${a} × ${b} = ?`,
+      answer,
+      operation,
+      a,
+      b,
+      choices: makeChoices(answer),
+    };
+  }
+
+  if (operation === "add") {
+    const a = randomInt(1, 20);
+    const b = randomInt(1, 20);
+    const answer = a + b;
+    return {
+      text: `${a} + ${b} = ?`,
+      answer,
+      operation,
+      a,
+      b,
+      choices: makeChoices(answer),
+    };
+  }
+
+  const a = randomInt(6, 30);
+  const b = randomInt(1, a - 1);
+  const answer = a - b;
+  return {
+    text: `${a} - ${b} = ?`,
+    answer,
+    operation,
+    a,
+    b,
+    choices: makeChoices(answer),
+  };
+}
+
+function makeChoices(answer) {
+  const choices = new Set([answer]);
+  while (choices.size < 4) {
+    const spread = Math.max(6, Math.min(18, Math.round(answer / 2)));
+    const offset = randomInt(-spread, spread);
+    const candidate = answer + offset;
+    if (candidate >= 0 && candidate !== answer) {
+      choices.add(candidate);
+    }
+  }
+
+  return shuffle(Array.from(choices));
+}
+
+function shuffle(items) {
+  return items
+    .map((item) => ({ item, order: Math.random() }))
+    .sort((a, b) => a.order - b.order)
+    .map(({ item }) => item);
+}
+
+function renderMonsterChoices() {
+  monsterChoices.innerHTML = state.monsterQuestion.choices.map((choice) => (
+    `<button type="button" data-choice="${choice}">${choice}</button>`
+  )).join("");
+  monsterChoices.querySelectorAll("button").forEach((button) => {
+    button.addEventListener("click", () => checkMonsterAnswer(Number(button.dataset.choice)));
+  });
+}
+
+function checkMonsterAnswer(choice) {
+  if (state.monsterLocked) {
+    return;
+  }
+
+  state.monsterLocked = true;
+  const isCorrect = choice === state.monsterQuestion.answer;
+  state.reviewRecords.push({
+    question: { ...state.monsterQuestion },
+    userAnswer: String(choice),
+    userAnswerDisplay: String(choice),
+    isCorrect,
+  });
+
+  if (isCorrect) {
+    state.monsterScore += 1;
+    state.score = state.monsterScore;
+    monsterFeedback.textContent = "打中了！";
+    monsterFeedback.className = "feedback feedback-card correct";
+    monsterEnemy.classList.add("hit");
+    playFeedbackSound(true);
+  } else {
+    monsterFeedback.textContent = `差一點！答案是 ${state.monsterQuestion.answer}`;
+    monsterFeedback.className = "feedback feedback-card wrong";
+    monsterEnemy.classList.add("miss");
+    playFeedbackSound(false);
+  }
+
+  monsterScoreText.textContent = `打中 ${state.monsterScore} 次`;
+  updateStars();
+  renderMonsterHealth();
+  window.setTimeout(nextMonsterQuestion, isCorrect ? 800 : 1200);
+}
+
+function renderMonsterHealth() {
+  const remaining = Math.max(0, TOTAL_QUESTIONS - state.monsterScore);
+  monsterHealthFill.style.width = `${(remaining / TOTAL_QUESTIONS) * 100}%`;
+}
+
+function showMonsterResult() {
+  monsterView.classList.add("hidden");
+  resultView.classList.remove("hidden");
+  resultScore.textContent = `${state.monsterScore} / ${TOTAL_QUESTIONS}`;
+  if (state.monsterScore === TOTAL_QUESTIONS) {
+    resultMessage.textContent = "怪物被打倒了，全部答對！";
+  } else if (state.monsterScore >= 7) {
+    resultMessage.textContent = "打得很好，怪物快撐不住了！";
+  } else {
+    resultMessage.textContent = "再練一輪，下一次打得更準。";
+  }
+  saveDailyPractice(TOTAL_QUESTIONS, state.monsterScore);
+  renderDailySummary();
+  renderReviewRecords();
+}
+
+function startPuzzleGame() {
+  clearNextQuestionTimer();
+  clearQuizTimer();
+  state.puzzleCurrent = 0;
+  state.puzzleScore = 0;
+  state.score = 0;
+  state.puzzleLocked = false;
+  state.puzzleImage = pickPuzzleImage();
+  state.puzzleRevealOrder = shuffle(Array.from({ length: PUZZLE_QUESTIONS }, (_, index) => index));
+  state.puzzleUnlockedPieces = [];
+  state.reviewRecords = [];
+  setupView.classList.add("hidden");
+  settingsView.classList.add("hidden");
+  quizView.classList.add("hidden");
+  monsterView.classList.add("hidden");
+  reciteView.classList.add("hidden");
+  resultView.classList.add("hidden");
+  puzzleView.classList.remove("hidden");
+  stars.textContent = "☆☆☆☆☆";
+  puzzleResultButton.classList.add("hidden");
+  renderPuzzleBoard();
+  nextPuzzleQuestion();
+}
+
+function nextPuzzleQuestion() {
+  if (state.puzzleCurrent >= PUZZLE_QUESTIONS) {
+    showPuzzleResult();
+    return;
+  }
+
+  state.puzzleCurrent += 1;
+  state.puzzleLocked = false;
+  state.puzzleQuestion = makeMiniGameQuestion("puzzle");
+  puzzleQuestionCount.textContent = `第 ${state.puzzleCurrent} / ${PUZZLE_QUESTIONS} 題`;
+  puzzleScoreText.textContent = `解鎖 ${state.puzzleScore} / ${PUZZLE_QUESTIONS} 片`;
+  puzzleQuestion.textContent = state.puzzleQuestion.text;
+  puzzleFeedback.textContent = "";
+  puzzleFeedback.className = "feedback hidden";
+  puzzleResultButton.classList.add("hidden");
+  renderPuzzleChoices();
+}
+
+function pickPuzzleImage() {
+  const images = [
+    { name: "小貓", theme: "cat" },
+    { name: "恐龍", theme: "dino" },
+    { name: "太空船", theme: "rocket" },
+    { name: "寶箱", theme: "treasure" },
+    { name: "勇者", theme: "hero" },
+    { name: "生日蛋糕", theme: "cake" },
+  ];
+  const image = images[randomInt(0, images.length - 1)];
+  return { ...image, url: makePuzzleImageUrl(image.theme) };
+}
+
+function makePuzzleImageUrl(theme) {
+  const artByTheme = {
+    cat: `
+      <rect width="300" height="300" fill="#ffe8b3"/>
+      <circle cx="150" cy="145" r="72" fill="#f7a35c"/>
+      <path d="M92 98 L118 48 L136 104 Z M164 104 L190 48 L208 98 Z" fill="#e96f55"/>
+      <circle cx="122" cy="136" r="9" fill="#263238"/>
+      <circle cx="178" cy="136" r="9" fill="#263238"/>
+      <path d="M145 158 Q150 166 155 158" fill="none" stroke="#263238" stroke-width="6" stroke-linecap="round"/>
+      <path d="M98 166 H54 M100 180 H58 M202 166 H246 M200 180 H242" stroke="#263238" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="106" cy="162" r="13" fill="#ffd1c8"/>
+      <circle cx="194" cy="162" r="13" fill="#ffd1c8"/>
+    `,
+    dino: `
+      <rect width="300" height="300" fill="#d8f3dc"/>
+      <ellipse cx="154" cy="172" rx="82" ry="58" fill="#2f8f6f"/>
+      <circle cx="212" cy="128" r="42" fill="#2f8f6f"/>
+      <path d="M78 164 Q40 142 36 98 Q76 126 106 150" fill="#2f8f6f"/>
+      <path d="M96 116 L112 78 L132 116 L150 78 L168 116 L186 78 L204 116" fill="#f7c948"/>
+      <circle cx="226" cy="118" r="7" fill="#263238"/>
+      <path d="M222 146 Q238 154 252 144" fill="none" stroke="#263238" stroke-width="5" stroke-linecap="round"/>
+      <rect x="112" y="212" width="24" height="42" rx="10" fill="#227157"/>
+      <rect x="178" y="212" width="24" height="42" rx="10" fill="#227157"/>
+    `,
+    rocket: `
+      <rect width="300" height="300" fill="#dbeafe"/>
+      <circle cx="74" cy="70" r="14" fill="#ffffff"/>
+      <circle cx="230" cy="54" r="10" fill="#ffffff"/>
+      <path d="M150 42 Q204 96 178 184 H122 Q96 96 150 42 Z" fill="#ffffff" stroke="#263238" stroke-width="6"/>
+      <circle cx="150" cy="104" r="24" fill="#4c7bd9"/>
+      <path d="M122 166 L76 210 L126 204 Z M178 166 L224 210 L174 204 Z" fill="#e96f55"/>
+      <path d="M130 206 Q150 270 170 206" fill="#f7c948"/>
+      <path d="M140 210 Q150 252 160 210" fill="#e96f55"/>
+    `,
+    treasure: `
+      <rect width="300" height="300" fill="#ffe4d6"/>
+      <path d="M70 132 Q70 70 150 70 Q230 70 230 132 Z" fill="#f7c948" stroke="#263238" stroke-width="6"/>
+      <rect x="62" y="126" width="176" height="96" rx="10" fill="#e96f55" stroke="#263238" stroke-width="6"/>
+      <rect x="138" y="70" width="24" height="152" fill="#fff3c4" stroke="#263238" stroke-width="5"/>
+      <rect x="62" y="142" width="176" height="24" fill="#f7c948" stroke="#263238" stroke-width="5"/>
+      <circle cx="150" cy="180" r="14" fill="#263238"/>
+      <circle cx="88" cy="94" r="8" fill="#ffffff"/>
+      <circle cx="208" cy="94" r="8" fill="#ffffff"/>
+    `,
+    hero: `
+      <rect width="300" height="300" fill="#e0f2fe"/>
+      <circle cx="150" cy="86" r="38" fill="#ffd1a6" stroke="#263238" stroke-width="6"/>
+      <path d="M106 90 Q150 30 194 90 Q170 72 150 76 Q130 72 106 90 Z" fill="#263238"/>
+      <path d="M86 238 Q104 132 150 132 Q196 132 214 238 Z" fill="#4c7bd9" stroke="#263238" stroke-width="6"/>
+      <path d="M118 154 H182 L166 216 H134 Z" fill="#f7c948" stroke="#263238" stroke-width="5"/>
+      <path d="M216 124 L254 86 L268 100 L230 138 Z" fill="#e96f55" stroke="#263238" stroke-width="5"/>
+      <path d="M98 124 L58 92" stroke="#263238" stroke-width="10" stroke-linecap="round"/>
+      <circle cx="136" cy="88" r="5" fill="#263238"/>
+      <circle cx="164" cy="88" r="5" fill="#263238"/>
+    `,
+    cake: `
+      <rect width="300" height="300" fill="#fde2f3"/>
+      <rect x="82" y="142" width="136" height="84" rx="14" fill="#ffd1a6" stroke="#263238" stroke-width="6"/>
+      <path d="M82 154 Q104 176 126 154 Q148 176 170 154 Q192 176 218 154 V142 H82 Z" fill="#ffffff" stroke="#263238" stroke-width="5"/>
+      <rect x="106" y="96" width="12" height="44" rx="6" fill="#4c7bd9"/>
+      <rect x="144" y="88" width="12" height="52" rx="6" fill="#2f8f6f"/>
+      <rect x="182" y="96" width="12" height="44" rx="6" fill="#e96f55"/>
+      <path d="M112 84 Q100 66 116 52 Q132 68 112 84 Z M150 76 Q138 58 154 44 Q170 60 150 76 Z M188 84 Q176 66 192 52 Q208 68 188 84 Z" fill="#f7c948"/>
+      <circle cx="118" cy="188" r="7" fill="#e96f55"/>
+      <circle cx="150" cy="188" r="7" fill="#4c7bd9"/>
+      <circle cx="182" cy="188" r="7" fill="#2f8f6f"/>
+    `,
+  };
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+      ${artByTheme[theme]}
+    </svg>
+  `;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+function renderPuzzleBoard() {
+  const image = state.puzzleImage;
+  puzzleBoard.setAttribute("aria-label", `${image.name}拼圖`);
+  puzzleBoard.innerHTML = Array.from({ length: PUZZLE_QUESTIONS }, (_, index) => {
+    const isUnlocked = state.puzzleUnlockedPieces.includes(index);
+    const row = Math.floor(index / 3);
+    const column = index % 3;
+    const positionX = column * 50;
+    const positionY = row * 50;
+    return `
+      <div
+        class="puzzle-piece ${isUnlocked ? "unlocked" : ""}"
+        style="--puzzle-image: url('${image.url}'); --piece-position: ${positionX}% ${positionY}%"
+      >
+        <span>${isUnlocked ? "" : "?"}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderPuzzleChoices() {
+  puzzleChoices.innerHTML = state.puzzleQuestion.choices.map((choice) => (
+    `<button type="button" data-choice="${choice}">${choice}</button>`
+  )).join("");
+  puzzleChoices.querySelectorAll("button").forEach((button) => {
+    button.addEventListener("click", () => checkPuzzleAnswer(Number(button.dataset.choice)));
+  });
+}
+
+function checkPuzzleAnswer(choice) {
+  if (state.puzzleLocked) {
+    return;
+  }
+
+  state.puzzleLocked = true;
+  const isCorrect = choice === state.puzzleQuestion.answer;
+  state.reviewRecords.push({
+    question: { ...state.puzzleQuestion },
+    userAnswer: String(choice),
+    userAnswerDisplay: String(choice),
+    isCorrect,
+  });
+
+  if (isCorrect) {
+    const nextPiece = state.puzzleRevealOrder[state.puzzleScore];
+    if (nextPiece !== undefined) {
+      state.puzzleUnlockedPieces.push(nextPiece);
+    }
+    state.puzzleScore += 1;
+    state.score = state.puzzleScore;
+    puzzleFeedback.textContent = "解鎖一片！";
+    puzzleFeedback.className = "feedback feedback-card correct";
+    playFeedbackSound(true);
+  } else {
+    puzzleFeedback.textContent = `差一點！答案是 ${state.puzzleQuestion.answer}`;
+    puzzleFeedback.className = "feedback feedback-card wrong";
+    playFeedbackSound(false);
+  }
+
+  puzzleScoreText.textContent = `解鎖 ${state.puzzleScore} / ${PUZZLE_QUESTIONS} 片`;
+  updateStars();
+  renderPuzzleBoard();
+  if (state.puzzleScore === PUZZLE_QUESTIONS) {
+    finishPuzzleUnlock();
+    return;
+  }
+  window.setTimeout(nextPuzzleQuestion, isCorrect ? 800 : 1200);
+}
+
+function finishPuzzleUnlock() {
+  puzzleQuestionCount.textContent = "拼圖完成";
+  puzzleScoreText.textContent = `解鎖 ${PUZZLE_QUESTIONS} / ${PUZZLE_QUESTIONS} 片`;
+  puzzleQuestion.textContent = `${state.puzzleImage.name}完成！`;
+  puzzleChoices.innerHTML = "";
+  puzzleFeedback.textContent = "全部拼好了，先看一下完成的圖片。";
+  puzzleFeedback.className = "feedback feedback-card correct";
+  puzzleResultButton.classList.remove("hidden");
+}
+
+function showPuzzleResult() {
+  puzzleView.classList.add("hidden");
+  resultView.classList.remove("hidden");
+  resultScore.textContent = `${state.puzzleScore} / ${PUZZLE_QUESTIONS}`;
+  if (state.puzzleScore === PUZZLE_QUESTIONS) {
+    resultMessage.textContent = `${state.puzzleImage.name}完整解鎖，全部答對！`;
+  } else if (state.puzzleScore >= 6) {
+    resultMessage.textContent = `${state.puzzleImage.name}快完成了，再玩一次就能補滿。`;
+  } else {
+    resultMessage.textContent = "先解開幾片也很棒，下一輪繼續。";
+  }
+  saveDailyPractice(PUZZLE_QUESTIONS, state.puzzleScore);
+  renderDailySummary();
+  renderReviewRecords();
 }
 
 function startWrongOnlyQuiz() {
@@ -220,6 +686,8 @@ function startWrongOnlyQuiz() {
   state.awaitingNext = false;
   setupView.classList.add("hidden");
   settingsView.classList.add("hidden");
+  monsterView.classList.add("hidden");
+  puzzleView.classList.add("hidden");
   reciteView.classList.add("hidden");
   resultView.classList.add("hidden");
   quizView.classList.remove("hidden");
@@ -234,6 +702,8 @@ function showRecitation(tableNumber) {
   state.multiplyMode = `recite-${tableNumber}`;
   setupView.classList.add("hidden");
   settingsView.classList.add("hidden");
+  monsterView.classList.add("hidden");
+  puzzleView.classList.add("hidden");
   quizView.classList.add("hidden");
   resultView.classList.add("hidden");
   reciteView.classList.remove("hidden");
@@ -365,6 +835,7 @@ function checkAnswer(event) {
 function showResult() {
   clearQuizTimer();
   quizView.classList.add("hidden");
+  puzzleView.classList.add("hidden");
   resultView.classList.remove("hidden");
   const answeredCount = state.reviewRecords.length;
   const resultTotal = state.timedMode ? answeredCount : state.totalQuestions;
@@ -389,7 +860,9 @@ function showResult() {
 }
 
 function updateStars() {
-  const starTotal = state.timedMode ? Math.max(state.reviewRecords.length, 1) : state.totalQuestions;
+  const starTotal = state.practiceMode === "miniGames"
+    ? state.miniGameMode === "puzzle" ? PUZZLE_QUESTIONS : TOTAL_QUESTIONS
+    : state.timedMode ? Math.max(state.reviewRecords.length, 1) : state.totalQuestions;
   const filled = Math.round((state.score / starTotal) * 5);
   stars.textContent = "★".repeat(filled) + "☆".repeat(5 - filled);
 }
@@ -493,6 +966,7 @@ function renderQuestion(question) {
 
 function renderHorizontalQuestion(question) {
   const answerDigits = String(question.answer);
+  const columns = answerDigits.length;
   const operatorByOperation = {
     divide: "÷",
     multiply: "×",
@@ -754,12 +1228,32 @@ function saveDailyPractice(questions, correct) {
 function renderDailySummary() {
   const data = getDailyPractice();
   if (data.questions === 0) {
-    dailySummary.textContent = "今天還沒完成練習";
+    dailySummary.innerHTML = `
+      <div class="daily-empty">
+        <strong>今天還沒完成練習</strong>
+        <span>完成一回合後，這裡會記錄題數和答對率。</span>
+      </div>
+    `;
     return;
   }
 
   const accuracy = Math.round((data.correct / data.questions) * 100);
-  dailySummary.textContent = `今天完成 ${data.sessions} 次，練了 ${data.questions} 題，答對率 ${accuracy}%`;
+  dailySummary.innerHTML = `
+    <div class="daily-stats">
+      <div>
+        <strong>${data.sessions}</strong>
+        <span>完成次數</span>
+      </div>
+      <div>
+        <strong>${data.questions}</strong>
+        <span>練習題數</span>
+      </div>
+      <div>
+        <strong>${accuracy}%</strong>
+        <span>答對率</span>
+      </div>
+    </div>
+  `;
 }
 
 function clearNextQuestionTimer() {
