@@ -100,10 +100,6 @@ h2 {
   gap: 24px;
 }
 
-.hidden {
-  display: none;
-}
-
 .field-group {
   display: grid;
   gap: 12px;
@@ -560,6 +556,69 @@ h2 {
   }
 }
 
+@media (min-width: 721px) and (max-width: 900px) {
+  .app-shell {
+    padding: 12px;
+  }
+
+  .practice-panel {
+    padding: 18px;
+  }
+
+  .question-card {
+    padding: 10px;
+  }
+
+  .question {
+    min-height: 640px;
+    font-size: clamp(4rem, 10vw, 5.6rem);
+  }
+
+  .worksheet {
+    --operator-col: 44px;
+    --cell-size: 100px;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .worksheet.columns-1 {
+    --cell-size: min(220px, 40vw);
+  }
+
+  .worksheet.columns-2 {
+    --cell-size: min(180px, 28vw);
+  }
+
+  .worksheet.columns-3 {
+    --cell-size: min(150px, 21vw);
+  }
+
+  .worksheet.columns-4 {
+    --cell-size: min(118px, 16vw);
+  }
+
+  .worksheet.columns-5 {
+    --cell-size: min(94px, 12vw);
+  }
+
+  .worksheet-cell {
+    min-height: 92px;
+  }
+
+  .carry-canvas {
+    min-height: 88px;
+  }
+
+  .answer-canvas {
+    min-height: 132px;
+  }
+
+  .preview-cell {
+    min-height: 46px;
+    font-size: 1.7rem;
+  }
+}
+
 @media (max-width: 420px) {
   .app-shell {
     padding: 6px;
@@ -635,4 +694,8 @@ h2 {
   .digit-chooser {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
+}
+
+.hidden {
+  display: none !important;
 }
