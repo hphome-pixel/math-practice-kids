@@ -2,6 +2,7 @@ const TOTAL_QUESTIONS = 10;
 
 const setupView = document.querySelector("#setupView");
 const quizView = document.querySelector("#quizView");
+const reciteView = document.querySelector("#reciteView");
 const resultView = document.querySelector("#resultView");
 const stars = document.querySelector("#stars");
 const questionCount = document.querySelector("#questionCount");
@@ -15,8 +16,12 @@ const resultScore = document.querySelector("#resultScore");
 const resultMessage = document.querySelector("#resultMessage");
 const clearWritingButton = document.querySelector("#clearWritingButton");
 const submitAnswerButton = document.querySelector("#submitAnswerButton");
+const startButton = document.querySelector("#startButton");
 const arithmeticSettings = document.querySelector("#arithmeticSettings");
 const multiplySettings = document.querySelector("#multiplySettings");
+const divideSettings = document.querySelector("#divideSettings");
+const reciteTitle = document.querySelector("#reciteTitle");
+const reciteList = document.querySelector("#reciteList");
 let nextQuestionTimer = null;
 let digitTemplates = null;
 
@@ -25,6 +30,7 @@ const state = {
   operation: "mixed",
   digits: 1,
   multiplyMode: "table-1",
+  divideMode: "divide-1",
   current: 0,
   score: 0,
   question: null,
@@ -35,30 +41,42 @@ const state = {
   previewCells: [],
 };
 
-document.querySelector("#startButton").addEventListener("click", startQuiz);
+startButton.addEventListener("click", startQuiz);
 document.querySelector("#stopButton").addEventListener("click", stopQuiz);
 document.querySelector("#againButton").addEventListener("click", startQuiz);
 document.querySelector("#changeButton").addEventListener("click", showSetup);
+document.querySelector("#reciteBackButton").addEventListener("click", showSetup);
+document.querySelector("#prevTableButton").addEventListener("click", () => changeReciteTable(-1));
+document.querySelector("#nextTableButton").addEventListener("click", () => changeReciteTable(1));
 answerForm.addEventListener("submit", checkAnswer);
 clearWritingButton.addEventListener("click", clearWriting);
 document.querySelectorAll("input[name='practiceMode']").forEach((input) => {
   input.addEventListener("change", updateSetupMode);
+});
+document.querySelectorAll("input[name='multiplyMode']").forEach((input) => {
+  input.addEventListener("change", updateStartButtonText);
 });
 updateSetupMode();
 
 function startQuiz() {
   clearNextQuestionTimer();
   state.practiceMode = document.querySelector("input[name='practiceMode']:checked").value;
-  state.operation = state.practiceMode === "multiply"
-    ? "multiply"
-    : document.querySelector("input[name='operation']:checked").value;
+  state.operation = getSelectedOperation(state.practiceMode);
   state.digits = Number(document.querySelector("input[name='digits']:checked").value);
   state.multiplyMode = document.querySelector("input[name='multiplyMode']:checked").value;
+  state.divideMode = document.querySelector("input[name='divideMode']:checked").value;
+
+  if (state.practiceMode === "multiply" && state.multiplyMode.startsWith("recite-")) {
+    showRecitation(Number(state.multiplyMode.replace("recite-", "")));
+    return;
+  }
+
   state.current = 0;
   state.score = 0;
   state.awaitingNext = false;
 
   setupView.classList.add("hidden");
+  reciteView.classList.add("hidden");
   resultView.classList.add("hidden");
   quizView.classList.remove("hidden");
   feedbackText.textContent = "";
@@ -71,6 +89,16 @@ function updateSetupMode() {
   const practiceMode = document.querySelector("input[name='practiceMode']:checked").value;
   arithmeticSettings.classList.toggle("hidden", practiceMode !== "arithmetic");
   multiplySettings.classList.toggle("hidden", practiceMode !== "multiply");
+  divideSettings.classList.toggle("hidden", practiceMode !== "divide");
+  updateStartButtonText();
+}
+
+function updateStartButtonText() {
+  const practiceMode = document.querySelector("input[name='practiceMode']:checked").value;
+  const multiplyMode = document.querySelector("input[name='multiplyMode']:checked").value;
+  startButton.textContent = practiceMode === "multiply" && multiplyMode.startsWith("recite-")
+    ? "開始背誦"
+    : "開始 10 題";
 }
 
 function showSetup() {
@@ -81,6 +109,7 @@ function showSetup() {
   submitAnswerButton.textContent = "確認";
   resultView.classList.add("hidden");
   quizView.classList.add("hidden");
+  reciteView.classList.add("hidden");
   setupView.classList.remove("hidden");
   stars.textContent = "☆☆☆☆☆";
   setWritingDisabled(false);
@@ -93,13 +122,46 @@ function stopQuiz() {
   showSetup();
 }
 
+function showRecitation(tableNumber) {
+  state.multiplyMode = `recite-${tableNumber}`;
+  setupView.classList.add("hidden");
+  quizView.classList.add("hidden");
+  resultView.classList.add("hidden");
+  reciteView.classList.remove("hidden");
+  stars.textContent = "☆☆☆☆☆";
+  renderRecitationTable(tableNumber);
+}
+
+function changeReciteTable(offset) {
+  const currentTable = Number(state.multiplyMode.replace("recite-", "")) || 1;
+  const nextTable = ((currentTable - 1 + offset + 9) % 9) + 1;
+  const input = document.querySelector(`input[name='multiplyMode'][value='recite-${nextTable}']`);
+  if (input) {
+    input.checked = true;
+  }
+  showRecitation(nextTable);
+}
+
+function renderRecitationTable(tableNumber) {
+  reciteTitle.textContent = `${tableNumber} 的乘法表`;
+  reciteList.innerHTML = Array.from({ length: 9 }, (_, index) => {
+    const multiplier = index + 1;
+    return `
+      <div class="recite-row">
+        <span>${tableNumber} × ${multiplier}</span>
+        <strong>${tableNumber * multiplier}</strong>
+      </div>
+    `;
+  }).join("");
+}
+
 function nextQuestion() {
   if (state.current >= TOTAL_QUESTIONS) {
     showResult();
     return;
   }
 
-  state.question = makeQuestion(state.operation, state.digits, state.multiplyMode);
+  state.question = makeQuestion(state.operation, state.digits, state.multiplyMode, state.divideMode);
   state.current += 1;
   state.locked = false;
   state.awaitingNext = false;
@@ -158,7 +220,7 @@ function checkAnswer(event) {
   scoreText.textContent = `答對 ${state.score} 題`;
   progressFill.style.width = `${(state.current / TOTAL_QUESTIONS) * 100}%`;
   if (isCorrect) {
-    nextQuestionTimer = setTimeout(nextQuestion, 700);
+    nextQuestionTimer = setTimeout(nextQuestion, 1000);
   }
 }
 
@@ -184,7 +246,7 @@ function updateStars() {
   stars.textContent = "★".repeat(filled) + "☆".repeat(5 - filled);
 }
 
-function makeQuestion(operation, digits, multiplyMode) {
+function makeQuestion(operation, digits, multiplyMode, divideMode) {
   const pickedOperation = operation === "mixed" ? pickOperation() : operation;
   const range = getRange(digits);
 
@@ -198,6 +260,10 @@ function makeQuestion(operation, digits, multiplyMode) {
     return makeMultiplyQuestion(multiplyMode);
   }
 
+  if (pickedOperation === "divide") {
+    return makeDivideQuestion(divideMode);
+  }
+
   const first = randomInt(range.min, range.max);
   const second = randomInt(range.min, range.max);
   const a = Math.max(first, second);
@@ -206,6 +272,20 @@ function makeQuestion(operation, digits, multiplyMode) {
 }
 
 function renderQuestion(question) {
+  if (question.layout === "horizontal") {
+    renderHorizontalQuestion(question);
+    return;
+  }
+
+  if (question.operation === "divide") {
+    if (question.layout === "longDivision") {
+      renderLongDivisionQuestion(question);
+    } else {
+      renderHorizontalQuestion(question);
+    }
+    return;
+  }
+
   const operatorByOperation = {
     add: "+",
     subtract: "-",
@@ -248,12 +328,66 @@ function renderQuestion(question) {
   updateAnswerPreview();
 }
 
+function renderHorizontalQuestion(question) {
+  const answerDigits = String(question.answer);
+  const columns = answerDigits.length;
+  const operatorByOperation = {
+    divide: "÷",
+    multiply: "×",
+  };
+  const operator = operatorByOperation[question.operation];
+  questionText.className = "question horizontal";
+  questionText.innerHTML = `
+    <div class="horizontal-question" aria-label="${question.text}">
+      <div class="horizontal-equation">${question.a} ${operator} ${question.b} = ?</div>
+      <div class="horizontal-answer columns-${columns}" style="--columns: ${columns}">
+        ${makeCanvasCells(columns, "answer-canvas", "答案")}
+        ${makePreviewCells(columns)}
+      </div>
+    </div>
+  `;
+  buildWritingBoxes();
+  updateAnswerPreview();
+}
+
+function renderLongDivisionQuestion(question) {
+  const answerDigits = String(question.answer);
+  const scratchColumns = String(question.a).length;
+  questionText.className = "question long-division";
+  questionText.innerHTML = `
+    <div class="long-division-question" aria-label="${question.text}">
+      <div class="long-division-grid">
+        <div class="long-division-spacer"></div>
+        <div class="long-division-answer columns-${scratchColumns}" style="--columns: ${scratchColumns}">
+          ${makeLongDivisionAnswerCells(answerDigits, scratchColumns)}
+        </div>
+        <div class="long-divisor">${question.b}</div>
+        <div class="long-dividend columns-${scratchColumns}" style="--columns: ${scratchColumns}">
+          ${makeLongDivisionDigitCells(String(question.a))}
+        </div>
+        <div class="long-division-spacer"></div>
+        <div class="long-division-scratch columns-${scratchColumns}" style="--columns: ${scratchColumns}" aria-label="運算草稿">
+          ${makeCanvasCells(scratchColumns * 2, "scratch-canvas", "草稿")}
+        </div>
+      </div>
+    </div>
+  `;
+  buildWritingBoxes();
+  updateAnswerPreview();
+}
+
 function pickOperation() {
   const operations = ["add", "subtract"];
   return operations[randomInt(0, operations.length - 1)];
 }
 
 function makeMultiplyQuestion(multiplyMode) {
+  if (multiplyMode === "hundreds") {
+    const a = randomInt(100, 999);
+    const b = randomInt(2, 9);
+    return { text: `${a} × ${b} = ?`, answer: a * b, operation: "multiply", a, b };
+  }
+
   if (multiplyMode === "tens") {
     const a = randomInt(10, 99);
     const b = randomInt(2, 9);
@@ -266,9 +400,48 @@ function makeMultiplyQuestion(multiplyMode) {
     text: `${tableNumber} × ${b} = ?`,
     answer: tableNumber * b,
     operation: "multiply",
+    layout: "horizontal",
     a: tableNumber,
     b,
   };
+}
+
+function makeDivideQuestion(divideMode) {
+  if (divideMode === "tens") {
+    const divisor = randomInt(2, 9);
+    const answer = randomInt(10, 99);
+    return {
+      text: `${divisor * answer} ÷ ${divisor} = ?`,
+      answer,
+      operation: "divide",
+      layout: "longDivision",
+      a: divisor * answer,
+      b: divisor,
+    };
+  }
+
+  const divisor = Number(divideMode.replace("divide-", ""));
+  const answer = randomInt(1, 9);
+  return {
+    text: `${divisor * answer} ÷ ${divisor} = ?`,
+    answer,
+    operation: "divide",
+    layout: "horizontal",
+    a: divisor * answer,
+    b: divisor,
+  };
+}
+
+function getSelectedOperation(practiceMode) {
+  if (practiceMode === "multiply") {
+    return "multiply";
+  }
+
+  if (practiceMode === "divide") {
+    return "divide";
+  }
+
+  return document.querySelector("input[name='operation']:checked").value;
 }
 
 function getRange(digits) {
@@ -301,7 +474,7 @@ function buildWritingBoxes() {
     cell.addEventListener("click", openDigitChooser);
   });
 
-  document.querySelectorAll(".answer-canvas, .carry-canvas").forEach((canvas, index) => {
+  document.querySelectorAll(".answer-canvas, .carry-canvas, .scratch-canvas").forEach((canvas, index) => {
     canvas.width = 160;
     canvas.height = 160;
 
@@ -633,7 +806,14 @@ function openDigitChooser(event) {
   chooser.innerHTML = Array.from({ length: 10 }, (_, digit) => (
     `<button type="button" data-choice="${digit}">${digit}</button>`
   )).join("");
-  previewCell.closest(".worksheet").append(chooser);
+  const chooserHost = previewCell.closest(".worksheet")
+    ?? previewCell.closest(".horizontal-question")
+    ?? previewCell.closest(".long-division-question");
+  if (!chooserHost) {
+    return;
+  }
+
+  chooserHost.append(chooser);
 
   chooser.querySelectorAll("button").forEach((button) => {
     button.addEventListener("click", () => {
@@ -670,6 +850,37 @@ function makeDigitCells(digits) {
   return digits
     .map((digit) => `<div class="worksheet-cell digit">${digit === " " ? "" : digit}</div>`)
     .join("");
+}
+
+function makeLongDivisionDigitCells(value) {
+  return value
+    .split("")
+    .map((digit) => `<span class="long-dividend-digit">${digit}</span>`)
+    .join("");
+}
+
+function makeLongDivisionAnswerCells(answerDigits, columns) {
+  const answerCells = answerDigits
+    .split("")
+    .map((_, index) => (
+      `<canvas class="answer-canvas" aria-label="商第 ${index + 1} 格"></canvas>`
+    ));
+  const previewCells = answerDigits
+    .split("")
+    .map((_, index) => (
+      `<button class="worksheet-cell preview-cell empty" type="button" data-preview-index="${index}">-</button>`
+    ));
+  const placeholders = Array.from(
+    { length: Math.max(0, columns - answerDigits.length) },
+    () => `<div class="long-division-placeholder" aria-hidden="true"></div>`,
+  );
+
+  return [
+    ...placeholders,
+    ...answerCells,
+    ...placeholders,
+    ...previewCells,
+  ].join("");
 }
 
 function makeCanvasCells(count, className, label) {

@@ -23,13 +23,21 @@
             <div class="mode-grid" role="radiogroup" aria-label="練習模式">
               <label class="mode-card">
                 <input type="radio" name="practiceMode" value="arithmetic" checked />
+                <strong class="mode-symbol">+ −</strong>
                 <span>加減法練習</span>
                 <small>加法、減法、加減混合</small>
               </label>
               <label class="mode-card">
                 <input type="radio" name="practiceMode" value="multiply" />
+                <strong class="mode-symbol">×</strong>
                 <span>乘法練習</span>
                 <small>1 到 9 乘法表、十位乘法</small>
+              </label>
+              <label class="mode-card">
+                <input type="radio" name="practiceMode" value="divide" />
+                <strong class="mode-symbol">÷</strong>
+                <span>除法練習</span>
+                <small>除以 1 到 9、十位除法</small>
               </label>
             </div>
           </div>
@@ -68,7 +76,7 @@
           </div>
 
           <div class="field-group hidden" id="multiplySettings">
-            <h2>乘法設定</h2>
+            <h2>乘法測驗</h2>
             <div class="times-grid" role="radiogroup" aria-label="乘法設定">
               <label><input type="radio" name="multiplyMode" value="table-1" checked />1</label>
               <label><input type="radio" name="multiplyMode" value="table-2" />2</label>
@@ -80,6 +88,36 @@
               <label><input type="radio" name="multiplyMode" value="table-8" />8</label>
               <label><input type="radio" name="multiplyMode" value="table-9" />9</label>
               <label class="wide-option"><input type="radio" name="multiplyMode" value="tens" />十位乘法</label>
+              <label class="wide-option"><input type="radio" name="multiplyMode" value="hundreds" />百位乘法</label>
+            </div>
+
+            <h2>乘法表背誦</h2>
+            <div class="times-grid" role="radiogroup" aria-label="乘法表背誦">
+              <label><input type="radio" name="multiplyMode" value="recite-1" />1 表</label>
+              <label><input type="radio" name="multiplyMode" value="recite-2" />2 表</label>
+              <label><input type="radio" name="multiplyMode" value="recite-3" />3 表</label>
+              <label><input type="radio" name="multiplyMode" value="recite-4" />4 表</label>
+              <label><input type="radio" name="multiplyMode" value="recite-5" />5 表</label>
+              <label><input type="radio" name="multiplyMode" value="recite-6" />6 表</label>
+              <label><input type="radio" name="multiplyMode" value="recite-7" />7 表</label>
+              <label><input type="radio" name="multiplyMode" value="recite-8" />8 表</label>
+              <label><input type="radio" name="multiplyMode" value="recite-9" />9 表</label>
+            </div>
+          </div>
+
+          <div class="field-group hidden" id="divideSettings">
+            <h2>除法設定</h2>
+            <div class="times-grid" role="radiogroup" aria-label="除法設定">
+              <label><input type="radio" name="divideMode" value="divide-1" checked />除以 1</label>
+              <label><input type="radio" name="divideMode" value="divide-2" />除以 2</label>
+              <label><input type="radio" name="divideMode" value="divide-3" />除以 3</label>
+              <label><input type="radio" name="divideMode" value="divide-4" />除以 4</label>
+              <label><input type="radio" name="divideMode" value="divide-5" />除以 5</label>
+              <label><input type="radio" name="divideMode" value="divide-6" />除以 6</label>
+              <label><input type="radio" name="divideMode" value="divide-7" />除以 7</label>
+              <label><input type="radio" name="divideMode" value="divide-8" />除以 8</label>
+              <label><input type="radio" name="divideMode" value="divide-9" />除以 9</label>
+              <label class="wide-option"><input type="radio" name="divideMode" value="tens" />十位除法</label>
             </div>
           </div>
 
@@ -106,6 +144,20 @@
               <button class="secondary-button" id="clearWritingButton" type="button">清除手寫</button>
               <button class="primary-button" id="submitAnswerButton" type="submit">確認</button>
             </form>
+          </div>
+        </section>
+
+        <section class="recite-view hidden" id="reciteView" aria-live="polite">
+          <div class="recite-header">
+            <button class="secondary-button compact-button" id="reciteBackButton" type="button">回主選單</button>
+            <div class="recite-switcher" aria-label="切換乘法表">
+              <button class="secondary-button compact-button" id="prevTableButton" type="button">上一表</button>
+              <button class="secondary-button compact-button" id="nextTableButton" type="button">下一表</button>
+            </div>
+          </div>
+          <div class="recite-card">
+            <h2 id="reciteTitle">1 的乘法表</h2>
+            <div class="recite-list" id="reciteList"></div>
           </div>
         </section>
 

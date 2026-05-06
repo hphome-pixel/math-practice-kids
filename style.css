@@ -95,6 +95,7 @@ h2 {
 
 .setup-view,
 .quiz-view,
+.recite-view,
 .result-view {
   display: grid;
   gap: 24px;
@@ -113,7 +114,7 @@ h2 {
 }
 
 .mode-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -122,7 +123,7 @@ h2 {
 }
 
 .times-grid {
-  grid-template-columns: repeat(10, minmax(0, 1fr));
+  grid-template-columns: repeat(9, minmax(0, 1fr));
 }
 
 .mode-card,
@@ -142,9 +143,26 @@ h2 {
 .mode-card {
   min-height: 116px;
   display: grid;
+  grid-template-columns: auto 1fr;
   align-content: center;
-  gap: 6px;
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 4px;
   padding: 18px;
+}
+
+.mode-symbol {
+  grid-row: span 2;
+  width: 58px;
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #fff6df;
+  color: var(--green);
+  font-size: 1.75rem;
+  font-weight: 950;
+  line-height: 1;
 }
 
 .mode-card span {
@@ -191,7 +209,8 @@ h2 {
 }
 
 .wide-option {
-  min-width: 110px;
+  grid-column: span 2;
+  min-width: 0;
 }
 
 .option-grid {
@@ -256,6 +275,57 @@ h2 {
 .quiz-actions {
   display: flex;
   justify-content: flex-end;
+}
+
+.recite-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.recite-switcher {
+  display: flex;
+  gap: 8px;
+}
+
+.recite-card {
+  display: grid;
+  gap: 18px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  padding: clamp(16px, 4vw, 32px);
+  background: #ffffff;
+}
+
+.recite-card h2 {
+  margin-bottom: 0;
+  font-size: clamp(1.8rem, 5vw, 3rem);
+}
+
+.recite-list {
+  display: grid;
+  gap: 8px;
+}
+
+.recite-row {
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 18px;
+  background: #fffdf8;
+  font-size: clamp(1.6rem, 5vw, 2.6rem);
+  font-weight: 950;
+}
+
+.recite-row strong {
+  min-width: 84px;
+  color: var(--green);
+  text-align: right;
 }
 
 .progress-row {
@@ -340,7 +410,8 @@ h2 {
 }
 
 .carry-canvas,
-.answer-canvas {
+.answer-canvas,
+.scratch-canvas {
   width: 100%;
   border: 2px solid var(--line);
   border-radius: 8px;
@@ -357,6 +428,12 @@ h2 {
 .answer-canvas {
   aspect-ratio: 1;
   min-height: 102px;
+}
+
+.scratch-canvas {
+  aspect-ratio: 1.2;
+  min-height: 96px;
+  border-style: dashed;
 }
 
 .preview-cell {
@@ -416,6 +493,112 @@ h2 {
   height: 8px;
   border-top: 6px solid var(--ink);
   border-radius: 999px;
+}
+
+.horizontal-question {
+  position: relative;
+  width: min(760px, 100%);
+  display: grid;
+  gap: 22px;
+  justify-items: center;
+  margin-bottom: 54px;
+}
+
+.horizontal-equation {
+  font-size: clamp(3rem, 10vw, 5.8rem);
+  font-weight: 950;
+  line-height: 1;
+  text-align: center;
+}
+
+.horizontal-answer {
+  width: min(420px, 100%);
+  display: grid;
+  grid-template-columns: repeat(var(--columns), minmax(86px, 1fr));
+  gap: 10px;
+}
+
+.horizontal-answer .answer-canvas {
+  min-height: 118px;
+}
+
+.horizontal-answer .preview-cell {
+  min-height: 44px;
+}
+
+.long-division-question {
+  position: relative;
+  width: min(760px, 100%);
+  display: grid;
+  justify-items: center;
+  margin-bottom: 54px;
+}
+
+.long-division-grid {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 10px 14px;
+  align-items: end;
+}
+
+.long-division-spacer {
+  min-width: 64px;
+}
+
+.long-division-answer {
+  display: grid;
+  grid-template-columns: repeat(var(--columns), minmax(96px, 1fr));
+  gap: 10px;
+}
+
+.long-division-placeholder {
+  min-height: 1px;
+}
+
+.long-division-answer .answer-canvas {
+  min-height: 120px;
+}
+
+.long-division-answer .preview-cell {
+  min-height: 44px;
+}
+
+.long-division-scratch {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.long-divisor {
+  min-width: 64px;
+  display: grid;
+  place-items: center;
+  font-size: clamp(3rem, 9vw, 5.2rem);
+  font-weight: 950;
+  line-height: 1;
+}
+
+.long-dividend {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--columns), minmax(96px, 1fr));
+  gap: 10px;
+  border-top: 6px solid var(--ink);
+  border-left: 6px solid var(--ink);
+  border-top-left-radius: 8px;
+  padding: 16px 0 12px;
+  text-align: center;
+  font-size: clamp(3rem, 9vw, 5.2rem);
+  font-weight: 950;
+  line-height: 1;
+}
+
+.long-dividend-digit {
+  display: grid;
+  place-items: center;
 }
 
 #answerForm {
@@ -560,6 +743,10 @@ h2 {
     min-height: 112px;
   }
 
+  .scratch-canvas {
+    min-height: 86px;
+  }
+
   .preview-cell {
     min-height: 42px;
     font-size: 1.55rem;
@@ -567,6 +754,31 @@ h2 {
 
   .digit-chooser {
     grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .horizontal-answer,
+  .long-division-answer,
+  .long-dividend {
+    grid-template-columns: repeat(var(--columns), minmax(92px, 1fr));
+  }
+
+  .long-division-grid {
+    gap: 8px 10px;
+  }
+
+  .long-division-spacer,
+  .long-divisor {
+    min-width: 48px;
+  }
+
+  .long-dividend {
+    min-width: 0;
+    padding: 14px 0 10px;
+  }
+
+  .long-division-scratch {
+    width: min(520px, 100%);
+    gap: 8px;
   }
 }
 
@@ -627,9 +839,27 @@ h2 {
     min-height: 132px;
   }
 
+  .scratch-canvas {
+    min-height: 104px;
+  }
+
   .preview-cell {
     min-height: 46px;
     font-size: 1.7rem;
+  }
+
+  .horizontal-answer,
+  .long-division-answer,
+  .long-dividend {
+    grid-template-columns: repeat(var(--columns), minmax(116px, 1fr));
+  }
+
+  .long-dividend {
+    min-width: 0;
+  }
+
+  .long-division-scratch {
+    width: min(560px, 100%);
   }
 }
 
@@ -654,6 +884,31 @@ h2 {
   .times-grid,
   .option-grid {
     grid-template-columns: 1fr;
+  }
+
+  .recite-header,
+  .recite-switcher {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .recite-row {
+    min-height: 58px;
+    padding: 8px 12px;
+  }
+
+  .recite-row strong {
+    min-width: 54px;
+  }
+
+  .mode-card {
+    grid-template-columns: auto 1fr;
+  }
+
+  .mode-symbol {
+    width: 52px;
+    min-height: 52px;
+    font-size: 1.55rem;
   }
 
   .worksheet {
@@ -700,6 +955,10 @@ h2 {
     min-height: 112px;
   }
 
+  .scratch-canvas {
+    min-height: 74px;
+  }
+
   .preview-cell {
     min-height: 40px;
     font-size: 1.5rem;
@@ -707,6 +966,37 @@ h2 {
 
   .digit-chooser {
     grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .horizontal-equation {
+    font-size: clamp(2.7rem, 13vw, 4rem);
+  }
+
+  .horizontal-answer,
+  .long-division-answer,
+  .long-dividend {
+    grid-template-columns: repeat(var(--columns), minmax(78px, 1fr));
+    gap: 6px;
+  }
+
+  .long-division-grid {
+    gap: 6px 7px;
+  }
+
+  .long-division-spacer,
+  .long-divisor {
+    min-width: 36px;
+  }
+
+  .long-dividend {
+    min-width: 0;
+    padding: 12px 0 8px;
+    border-top-width: 5px;
+    border-left-width: 5px;
+  }
+
+  .long-division-scratch {
+    gap: 6px;
   }
 }
 
