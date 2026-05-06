@@ -29,7 +29,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -356,6 +357,35 @@ h3 {
 .version-card strong {
   color: var(--green);
   font-size: 1.2rem;
+}
+
+.select-card {
+  min-height: 86px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: #ffffff;
+}
+
+.select-card span {
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-weight: 950;
+}
+
+.select-card select {
+  min-height: 42px;
+  min-width: 150px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #fffdf8;
+  color: var(--ink);
+  font-weight: 900;
 }
 
 .daily-card {

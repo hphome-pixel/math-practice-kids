@@ -36,6 +36,7 @@ const reciteList = document.querySelector("#reciteList");
 const toggleAnswersButton = document.querySelector("#toggleAnswersButton");
 const timedModeToggle = document.querySelector("#timedModeToggle");
 const soundToggle = document.querySelector("#soundToggle");
+const languageSelect = document.querySelector("#languageSelect");
 const timeLimitInput = document.querySelector("#timeLimitInput");
 const timerText = document.querySelector("#timerText");
 const dailySummary = document.querySelector("#dailySummary");
@@ -58,6 +59,130 @@ let quizTimer = null;
 let digitTemplates = null;
 let audioContext = null;
 
+const translations = {
+  en: {
+    "開始背誦": "Start Review",
+    "開始解鎖": "Start Unlock",
+    "開始遊戲": "Start Game",
+    "打中了！": "Hit!",
+    "怪物被打倒了，全部答對！": "The monster is defeated. Perfect!",
+    "打得很好，怪物快撐不住了！": "Great hits. The monster is almost down!",
+    "再練一輪，下一次打得更準。": "Try another round and aim even better.",
+    "解鎖一片！": "One piece unlocked!",
+    "拼圖完成": "Puzzle Complete",
+    "全部拼好了，先看一下完成的圖片。": "All pieces are complete. Take a moment to enjoy the picture.",
+    "先解開幾片也很棒，下一輪繼續。": "Unlocking a few pieces is still progress. Keep going next round.",
+    "數學練習": "Math Practice",
+    "設定": "Settings",
+    "選擇練習": "Choose Practice",
+    "加法練習": "Addition Practice",
+    "直式加法、進位練習": "Column addition and carrying",
+    "減法練習": "Subtraction Practice",
+    "直式減法、借位練習": "Column subtraction and borrowing",
+    "乘法練習": "Multiplication Practice",
+    "1 到 9 乘法表、十位乘法": "1 to 9 times tables and tens",
+    "除法練習": "Division Practice",
+    "除以 1 到 9、十位除法": "Divide by 1 to 9 and tens",
+    "小遊戲": "Mini Games",
+    "打怪練習、拼圖解鎖": "Monster practice and puzzle unlock",
+    "選擇小遊戲": "Choose Mini Game",
+    "打怪練習": "Monster Practice",
+    "先選題型，答對攻擊": "Choose a question type, then attack",
+    "拼圖解鎖": "Puzzle Unlock",
+    "答對一題，解鎖一片圖片": "Unlock one piece for each correct answer",
+    "選擇題目": "Choose Questions",
+    "加法": "Addition",
+    "減法": "Subtraction",
+    "乘法": "Multiplication",
+    "混合": "Mixed",
+    "選擇位數": "Choose Digits",
+    "個位": "Ones",
+    "十位": "Tens",
+    "百位": "Hundreds",
+    "千位": "Thousands",
+    "難度設定": "Difficulty",
+    "不限": "Any",
+    "不進位": "No carrying",
+    "有進位": "With carrying",
+    "不借位": "No borrowing",
+    "有借位": "With borrowing",
+    "乘法測驗": "Multiplication Quiz",
+    "十位乘法": "Tens multiplication",
+    "百位乘法": "Hundreds multiplication",
+    "乘法表背誦": "Times Table Review",
+    "1 表": "1 table",
+    "2 表": "2 table",
+    "3 表": "3 table",
+    "4 表": "4 table",
+    "5 表": "5 table",
+    "6 表": "6 table",
+    "7 表": "7 table",
+    "8 表": "8 table",
+    "9 表": "9 table",
+    "除法設定": "Division Settings",
+    "除以 1": "Divide by 1",
+    "除以 2": "Divide by 2",
+    "除以 3": "Divide by 3",
+    "除以 4": "Divide by 4",
+    "除以 5": "Divide by 5",
+    "除以 6": "Divide by 6",
+    "除以 7": "Divide by 7",
+    "除以 8": "Divide by 8",
+    "除以 9": "Divide by 9",
+    "十位除法": "Tens division",
+    "練習選項": "Practice Options",
+    "限時模式": "Timed Mode",
+    "秒內一直答題": "seconds, keep answering",
+    "今日練習": "Today's Practice",
+    "今天還沒完成練習": "No practice completed today",
+    "開始 10 題": "Start 10 Questions",
+    "回主選單": "Back to Menu",
+    "鼓勵音效": "Encouragement Sounds",
+    "答對答錯都有提示音，可以隨時關閉": "Play sounds for correct and wrong answers. You can turn this off anytime.",
+    "語言": "Language",
+    "版本": "Version",
+    "停止練習": "Stop Practice",
+    "答對 0 題": "0 Correct",
+    "剩 60 秒": "60 seconds left",
+    "清除手寫": "Clear Writing",
+    "確認": "Check",
+    "停止遊戲": "Stop Game",
+    "打中 0 次": "0 Hits",
+    "解鎖 0 / 9 片": "Unlocked 0 / 9 pieces",
+    "看成績": "See Score",
+    "切換乘法表": "Switch times table",
+    "遮住答案": "Hide Answers",
+    "顯示答案": "Show Answers",
+    "先在答案格寫答案喔": "Write the answer in the boxes first.",
+    "答對了！": "Correct!",
+    "下一題": "Next Question",
+    "這次還沒作答，準備好再試一次。": "No answers yet. Try again when you are ready.",
+    "全部答對，太厲害了！": "Perfect score. Amazing!",
+    "有進步，再練一輪會更熟。": "Nice progress. Another round will make it smoother.",
+    "慢慢來，每次多會一點就很好。": "Take your time. Learning a little more each time is great.",
+    "答對": "Correct",
+    "答錯": "Wrong",
+    "完成一回合後，這裡會記錄題數和答對率。": "After one round, this area will track questions and accuracy.",
+    "完成次數": "Rounds",
+    "練習題數": "Questions",
+    "答對率": "Accuracy",
+    "上一表": "Previous Table",
+    "下一表": "Next Table",
+    "1 的乘法表": "1 Times Table",
+    "練習完成": "Practice Complete",
+    "很棒，繼續保持！": "Great work. Keep going!",
+    "答題紀錄": "Answer Review",
+    "只練錯題": "Practice Missed Only",
+    "再練一次": "Practice Again",
+    "重新選擇": "Choose Again",
+    "關於": "About",
+    "隱私權政策": "Privacy Policy",
+    "聯絡我們": "Contact",
+  },
+};
+
+const textNodes = [];
+
 const state = {
   practiceMode: "add",
   operation: "add",
@@ -66,6 +191,7 @@ const state = {
   divideMode: "divide-1",
   miniGameMode: "monster",
   miniGameOperation: "add",
+  language: getStoredLanguage(),
   addDifficulty: "any",
   subtractDifficulty: "any",
   timedMode: false,
@@ -129,8 +255,95 @@ timeLimitInput.addEventListener("input", updateStartButtonText);
 soundToggle.addEventListener("change", () => {
   state.soundEnabled = soundToggle.checked;
 });
+languageSelect.addEventListener("change", () => {
+  state.language = languageSelect.value;
+  saveLanguage();
+  applyLanguage();
+  updateStartButtonText();
+  renderDailySummary();
+});
+collectTextNodes();
+languageSelect.value = state.language;
+applyLanguage();
 updateSetupMode();
 renderDailySummary();
+
+function getStoredLanguage() {
+  try {
+    return localStorage.getItem("mathPracticeLanguage") || "zh-Hant";
+  } catch {
+    return "zh-Hant";
+  }
+}
+
+function saveLanguage() {
+  try {
+    localStorage.setItem("mathPracticeLanguage", state.language);
+  } catch {
+    // Language selection still works for the current visit.
+  }
+}
+
+function t(zhText) {
+  if (state.language === "en") {
+    return translations.en[zhText] || zhText;
+  }
+  return zhText;
+}
+
+function collectTextNodes() {
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let node = walker.nextNode();
+  while (node) {
+    const value = node.nodeValue.trim();
+    if (value) {
+      textNodes.push({ node, originalValue: node.nodeValue, zhText: value });
+    }
+    node = walker.nextNode();
+  }
+}
+
+function applyLanguage() {
+  document.documentElement.lang = state.language;
+  document.title = t("數學練習");
+  textNodes.forEach(({ node, originalValue, zhText }) => {
+    const translated = t(zhText);
+    node.nodeValue = originalValue.replace(zhText, translated);
+  });
+  updateInfoPageLinks();
+}
+
+function updateInfoPageLinks() {
+  const suffix = state.language === "en" ? "-en" : "";
+  const footerLinks = document.querySelectorAll(".site-footer a");
+  if (footerLinks[0]) footerLinks[0].href = `about${suffix}.html`;
+  if (footerLinks[1]) footerLinks[1].href = `privacy${suffix}.html`;
+  if (footerLinks[2]) footerLinks[2].href = `contact${suffix}.html`;
+}
+
+function formatQuestionCounter(current, total) {
+  return state.language === "en" ? `Question ${current} / ${total}` : `第 ${current} / ${total} 題`;
+}
+
+function formatQuestionNumber(current) {
+  return state.language === "en" ? `Question ${current}` : `第 ${current} 題`;
+}
+
+function formatScore(score) {
+  return state.language === "en" ? `${score} Correct` : `答對 ${score} 題`;
+}
+
+function formatHits(score) {
+  return state.language === "en" ? `${score} Hits` : `打中 ${score} 次`;
+}
+
+function formatPuzzleScore(score, total = PUZZLE_QUESTIONS) {
+  return state.language === "en" ? `Unlocked ${score} / ${total} pieces` : `解鎖 ${score} / ${total} 片`;
+}
+
+function formatWrongAnswer(answer) {
+  return state.language === "en" ? `Almost! The answer is ${answer}` : `差一點！答案是 ${answer}`;
+}
 
 function startQuiz() {
   clearNextQuestionTimer();
@@ -206,11 +419,13 @@ function updateStartButtonText() {
   const multiplyMode = document.querySelector("input[name='multiplyMode']:checked").value;
   const miniGameMode = document.querySelector("input[name='miniGameMode']:checked").value;
   if (practiceMode === "multiply" && multiplyMode.startsWith("recite-")) {
-    startButton.textContent = "開始背誦";
+    startButton.textContent = t("開始背誦");
   } else if (practiceMode === "miniGames") {
-    startButton.textContent = miniGameMode === "puzzle" ? "開始解鎖" : "開始遊戲";
+    startButton.textContent = miniGameMode === "puzzle" ? t("開始解鎖") : t("開始遊戲");
   } else {
-    startButton.textContent = timedModeToggle.checked ? `開始 ${getTimeLimitSeconds()} 秒` : "開始 10 題";
+    startButton.textContent = timedModeToggle.checked
+      ? state.language === "en" ? `Start ${getTimeLimitSeconds()} Seconds` : `開始 ${getTimeLimitSeconds()} 秒`
+      : t("開始 10 題");
   }
 }
 
@@ -232,7 +447,7 @@ function showSetup() {
   state.awaitingNext = false;
   state.questionQueue = null;
   submitAnswerButton.disabled = false;
-  submitAnswerButton.textContent = "確認";
+  submitAnswerButton.textContent = t("確認");
   resultView.classList.add("hidden");
   settingsView.classList.add("hidden");
   monsterView.classList.add("hidden");
@@ -293,8 +508,8 @@ function nextMonsterQuestion() {
   state.monsterCurrent += 1;
   state.monsterLocked = false;
   state.monsterQuestion = makeMonsterQuestion();
-  monsterQuestionCount.textContent = `第 ${state.monsterCurrent} / ${TOTAL_QUESTIONS} 題`;
-  monsterScoreText.textContent = `打中 ${state.monsterScore} 次`;
+  monsterQuestionCount.textContent = formatQuestionCounter(state.monsterCurrent, TOTAL_QUESTIONS);
+  monsterScoreText.textContent = formatHits(state.monsterScore);
   monsterQuestion.textContent = state.monsterQuestion.text;
   monsterFeedback.textContent = "";
   monsterFeedback.className = "feedback hidden";
@@ -402,18 +617,18 @@ function checkMonsterAnswer(choice) {
   if (isCorrect) {
     state.monsterScore += 1;
     state.score = state.monsterScore;
-    monsterFeedback.textContent = "打中了！";
+    monsterFeedback.textContent = t("打中了！");
     monsterFeedback.className = "feedback feedback-card correct";
     monsterEnemy.classList.add("hit");
     playFeedbackSound(true);
   } else {
-    monsterFeedback.textContent = `差一點！答案是 ${state.monsterQuestion.answer}`;
+    monsterFeedback.textContent = formatWrongAnswer(state.monsterQuestion.answer);
     monsterFeedback.className = "feedback feedback-card wrong";
     monsterEnemy.classList.add("miss");
     playFeedbackSound(false);
   }
 
-  monsterScoreText.textContent = `打中 ${state.monsterScore} 次`;
+  monsterScoreText.textContent = formatHits(state.monsterScore);
   updateStars();
   renderMonsterHealth();
   window.setTimeout(nextMonsterQuestion, isCorrect ? 800 : 1200);
@@ -429,11 +644,11 @@ function showMonsterResult() {
   resultView.classList.remove("hidden");
   resultScore.textContent = `${state.monsterScore} / ${TOTAL_QUESTIONS}`;
   if (state.monsterScore === TOTAL_QUESTIONS) {
-    resultMessage.textContent = "怪物被打倒了，全部答對！";
+    resultMessage.textContent = t("怪物被打倒了，全部答對！");
   } else if (state.monsterScore >= 7) {
-    resultMessage.textContent = "打得很好，怪物快撐不住了！";
+    resultMessage.textContent = t("打得很好，怪物快撐不住了！");
   } else {
-    resultMessage.textContent = "再練一輪，下一次打得更準。";
+    resultMessage.textContent = t("再練一輪，下一次打得更準。");
   }
   saveDailyPractice(TOTAL_QUESTIONS, state.monsterScore);
   renderDailySummary();
@@ -473,8 +688,8 @@ function nextPuzzleQuestion() {
   state.puzzleCurrent += 1;
   state.puzzleLocked = false;
   state.puzzleQuestion = makeMiniGameQuestion("puzzle");
-  puzzleQuestionCount.textContent = `第 ${state.puzzleCurrent} / ${PUZZLE_QUESTIONS} 題`;
-  puzzleScoreText.textContent = `解鎖 ${state.puzzleScore} / ${PUZZLE_QUESTIONS} 片`;
+  puzzleQuestionCount.textContent = formatQuestionCounter(state.puzzleCurrent, PUZZLE_QUESTIONS);
+  puzzleScoreText.textContent = formatPuzzleScore(state.puzzleScore);
   puzzleQuestion.textContent = state.puzzleQuestion.text;
   puzzleFeedback.textContent = "";
   puzzleFeedback.className = "feedback hidden";
@@ -484,12 +699,12 @@ function nextPuzzleQuestion() {
 
 function pickPuzzleImage() {
   const images = [
-    { name: "小貓", theme: "cat" },
-    { name: "恐龍", theme: "dino" },
-    { name: "太空船", theme: "rocket" },
-    { name: "寶箱", theme: "treasure" },
-    { name: "勇者", theme: "hero" },
-    { name: "生日蛋糕", theme: "cake" },
+    { name: "小貓", enName: "Cat", theme: "cat" },
+    { name: "恐龍", enName: "Dinosaur", theme: "dino" },
+    { name: "太空船", enName: "Rocket", theme: "rocket" },
+    { name: "寶箱", enName: "Treasure Chest", theme: "treasure" },
+    { name: "勇者", enName: "Hero", theme: "hero" },
+    { name: "生日蛋糕", enName: "Birthday Cake", theme: "cake" },
   ];
   const image = images[randomInt(0, images.length - 1)];
   return { ...image, url: makePuzzleImageUrl(image.theme) };
@@ -573,7 +788,10 @@ function makePuzzleImageUrl(theme) {
 
 function renderPuzzleBoard() {
   const image = state.puzzleImage;
-  puzzleBoard.setAttribute("aria-label", `${image.name}拼圖`);
+  puzzleBoard.setAttribute(
+    "aria-label",
+    state.language === "en" ? `${image.enName} puzzle` : `${image.name}拼圖`,
+  );
   puzzleBoard.innerHTML = Array.from({ length: PUZZLE_QUESTIONS }, (_, index) => {
     const isUnlocked = state.puzzleUnlockedPieces.includes(index);
     const row = Math.floor(index / 3);
@@ -621,16 +839,16 @@ function checkPuzzleAnswer(choice) {
     }
     state.puzzleScore += 1;
     state.score = state.puzzleScore;
-    puzzleFeedback.textContent = "解鎖一片！";
+    puzzleFeedback.textContent = t("解鎖一片！");
     puzzleFeedback.className = "feedback feedback-card correct";
     playFeedbackSound(true);
   } else {
-    puzzleFeedback.textContent = `差一點！答案是 ${state.puzzleQuestion.answer}`;
+    puzzleFeedback.textContent = formatWrongAnswer(state.puzzleQuestion.answer);
     puzzleFeedback.className = "feedback feedback-card wrong";
     playFeedbackSound(false);
   }
 
-  puzzleScoreText.textContent = `解鎖 ${state.puzzleScore} / ${PUZZLE_QUESTIONS} 片`;
+  puzzleScoreText.textContent = formatPuzzleScore(state.puzzleScore);
   updateStars();
   renderPuzzleBoard();
   if (state.puzzleScore === PUZZLE_QUESTIONS) {
@@ -641,11 +859,13 @@ function checkPuzzleAnswer(choice) {
 }
 
 function finishPuzzleUnlock() {
-  puzzleQuestionCount.textContent = "拼圖完成";
-  puzzleScoreText.textContent = `解鎖 ${PUZZLE_QUESTIONS} / ${PUZZLE_QUESTIONS} 片`;
-  puzzleQuestion.textContent = `${state.puzzleImage.name}完成！`;
+  puzzleQuestionCount.textContent = t("拼圖完成");
+  puzzleScoreText.textContent = formatPuzzleScore(PUZZLE_QUESTIONS);
+  puzzleQuestion.textContent = state.language === "en"
+    ? `${state.puzzleImage.enName} complete!`
+    : `${state.puzzleImage.name}完成！`;
   puzzleChoices.innerHTML = "";
-  puzzleFeedback.textContent = "全部拼好了，先看一下完成的圖片。";
+  puzzleFeedback.textContent = t("全部拼好了，先看一下完成的圖片。");
   puzzleFeedback.className = "feedback feedback-card correct";
   puzzleResultButton.classList.remove("hidden");
 }
@@ -655,11 +875,15 @@ function showPuzzleResult() {
   resultView.classList.remove("hidden");
   resultScore.textContent = `${state.puzzleScore} / ${PUZZLE_QUESTIONS}`;
   if (state.puzzleScore === PUZZLE_QUESTIONS) {
-    resultMessage.textContent = `${state.puzzleImage.name}完整解鎖，全部答對！`;
+    resultMessage.textContent = state.language === "en"
+      ? `${state.puzzleImage.enName} fully unlocked. Perfect!`
+      : `${state.puzzleImage.name}完整解鎖，全部答對！`;
   } else if (state.puzzleScore >= 6) {
-    resultMessage.textContent = `${state.puzzleImage.name}快完成了，再玩一次就能補滿。`;
+    resultMessage.textContent = state.language === "en"
+      ? `${state.puzzleImage.enName} is almost complete. Try again to finish it.`
+      : `${state.puzzleImage.name}快完成了，再玩一次就能補滿。`;
   } else {
-    resultMessage.textContent = "先解開幾片也很棒，下一輪繼續。";
+    resultMessage.textContent = t("先解開幾片也很棒，下一輪繼續。");
   }
   saveDailyPractice(PUZZLE_QUESTIONS, state.puzzleScore);
   renderDailySummary();
@@ -720,7 +944,7 @@ function toggleReciteAnswers() {
 }
 
 function updateReciteToggleButton() {
-  toggleAnswersButton.textContent = state.reciteAnswersHidden ? "顯示答案" : "遮住答案";
+  toggleAnswersButton.textContent = state.reciteAnswersHidden ? t("顯示答案") : t("遮住答案");
 }
 
 function changeReciteTable(offset) {
@@ -734,7 +958,7 @@ function changeReciteTable(offset) {
 }
 
 function renderRecitationTable(tableNumber) {
-  reciteTitle.textContent = `${tableNumber} 的乘法表`;
+  reciteTitle.textContent = state.language === "en" ? `${tableNumber} Times Table` : `${tableNumber} 的乘法表`;
   reciteList.innerHTML = Array.from({ length: 9 }, (_, index) => {
     const multiplier = index + 1;
     const answer = tableNumber * multiplier;
@@ -764,15 +988,15 @@ function nextQuestion() {
   feedbackText.textContent = "";
   feedbackText.className = "feedback hidden";
   questionCount.textContent = state.timedMode
-    ? `第 ${state.current} 題`
-    : `第 ${state.current} / ${state.totalQuestions} 題`;
-  scoreText.textContent = `答對 ${state.score} 題`;
+    ? formatQuestionNumber(state.current)
+    : formatQuestionCounter(state.current, state.totalQuestions);
+  scoreText.textContent = formatScore(state.score);
   progressFill.style.width = state.timedMode
     ? `${((getTimeLimitSeconds() - state.secondsLeft) / getTimeLimitSeconds()) * 100}%`
     : `${((state.current - 1) / state.totalQuestions) * 100}%`;
   answerInput.value = "";
   submitAnswerButton.disabled = false;
-  submitAnswerButton.textContent = "確認";
+  submitAnswerButton.textContent = t("確認");
   setWritingDisabled(false);
 }
 
@@ -792,7 +1016,7 @@ function checkAnswer(event) {
   answerInput.value = writtenAnswer;
 
   if (writtenAnswer === "") {
-    feedbackText.textContent = "先在答案格寫答案喔";
+    feedbackText.textContent = t("先在答案格寫答案喔");
     feedbackText.className = "feedback feedback-card wrong";
     return;
   }
@@ -810,20 +1034,20 @@ function checkAnswer(event) {
 
   if (isCorrect) {
     state.score += 1;
-    feedbackText.textContent = "答對了！";
+    feedbackText.textContent = t("答對了！");
     feedbackText.className = "feedback feedback-card correct";
     submitAnswerButton.disabled = true;
     playFeedbackSound(true);
   } else {
-    feedbackText.textContent = `差一點！答案是 ${getAnswerDisplay(state.question)}`;
+    feedbackText.textContent = formatWrongAnswer(getAnswerDisplay(state.question));
     feedbackText.className = "feedback feedback-card wrong";
     state.awaitingNext = true;
-    submitAnswerButton.textContent = "下一題";
+    submitAnswerButton.textContent = t("下一題");
     playFeedbackSound(false);
   }
 
   updateStars();
-  scoreText.textContent = `答對 ${state.score} 題`;
+  scoreText.textContent = formatScore(state.score);
   progressFill.style.width = state.timedMode
     ? `${((getTimeLimitSeconds() - state.secondsLeft) / getTimeLimitSeconds()) * 100}%`
     : `${(state.current / state.totalQuestions) * 100}%`;
@@ -843,15 +1067,15 @@ function showResult() {
   progressFill.style.width = "100%";
 
   if (resultTotal === 0) {
-    resultMessage.textContent = "這次還沒作答，準備好再試一次。";
+    resultMessage.textContent = t("這次還沒作答，準備好再試一次。");
   } else if (state.score === resultTotal) {
-    resultMessage.textContent = "全部答對，太厲害了！";
+    resultMessage.textContent = t("全部答對，太厲害了！");
   } else if (state.score / resultTotal >= 0.8) {
-    resultMessage.textContent = "很棒，繼續保持！";
+    resultMessage.textContent = t("很棒，繼續保持！");
   } else if (state.score / resultTotal >= 0.5) {
-    resultMessage.textContent = "有進步，再練一輪會更熟。";
+    resultMessage.textContent = t("有進步，再練一輪會更熟。");
   } else {
-    resultMessage.textContent = "慢慢來，每次多會一點就很好。";
+    resultMessage.textContent = t("慢慢來，每次多會一點就很好。");
   }
 
   saveDailyPractice(resultTotal, state.score);
@@ -872,13 +1096,15 @@ function renderReviewRecords() {
   document.querySelector("#wrongOnlyButton").classList.toggle("hidden", wrongCount === 0);
   reviewPanel.classList.toggle("hidden", state.reviewRecords.length === 0);
   reviewList.innerHTML = state.reviewRecords.map((record, index) => {
-    const status = record.isCorrect ? "答對" : "答錯";
+    const status = record.isCorrect ? t("答對") : t("答錯");
     const answerText = record.isCorrect
-      ? `你寫 ${record.userAnswerDisplay}`
-      : `你寫 ${record.userAnswerDisplay}，答案是 ${getAnswerDisplay(record.question)}`;
+      ? state.language === "en" ? `You wrote ${record.userAnswerDisplay}` : `你寫 ${record.userAnswerDisplay}`
+      : state.language === "en"
+        ? `You wrote ${record.userAnswerDisplay}; answer: ${getAnswerDisplay(record.question)}`
+        : `你寫 ${record.userAnswerDisplay}，答案是 ${getAnswerDisplay(record.question)}`;
     return `
       <div class="review-row ${record.isCorrect ? "correct" : "wrong"}">
-        <span>第 ${index + 1} 題</span>
+        <span>${state.language === "en" ? `Question ${index + 1}` : `第 ${index + 1} 題`}</span>
         <strong>${record.question.text.replace("?", getAnswerDisplay(record.question))}</strong>
         <small>${status}：${answerText}</small>
       </div>
@@ -1230,8 +1456,8 @@ function renderDailySummary() {
   if (data.questions === 0) {
     dailySummary.innerHTML = `
       <div class="daily-empty">
-        <strong>今天還沒完成練習</strong>
-        <span>完成一回合後，這裡會記錄題數和答對率。</span>
+        <strong>${t("今天還沒完成練習")}</strong>
+        <span>${t("完成一回合後，這裡會記錄題數和答對率。")}</span>
       </div>
     `;
     return;
@@ -1242,15 +1468,15 @@ function renderDailySummary() {
     <div class="daily-stats">
       <div>
         <strong>${data.sessions}</strong>
-        <span>完成次數</span>
+        <span>${t("完成次數")}</span>
       </div>
       <div>
         <strong>${data.questions}</strong>
-        <span>練習題數</span>
+        <span>${t("練習題數")}</span>
       </div>
       <div>
         <strong>${accuracy}%</strong>
-        <span>答對率</span>
+        <span>${t("答對率")}</span>
       </div>
     </div>
   `;
@@ -1286,7 +1512,7 @@ function clearQuizTimer() {
 
 function updateTimerDisplay() {
   timerText.classList.toggle("hidden", !state.timedMode);
-  timerText.textContent = `剩 ${state.secondsLeft} 秒`;
+  timerText.textContent = state.language === "en" ? `${state.secondsLeft} seconds left` : `剩 ${state.secondsLeft} 秒`;
 }
 
 function buildWritingBoxes() {
