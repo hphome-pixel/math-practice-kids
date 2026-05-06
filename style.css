@@ -435,12 +435,12 @@ h2 {
 .feedback-card {
   display: grid;
   place-items: center;
-  min-height: 76px;
+  min-height: 96px;
   border: 2px solid currentColor;
   border-radius: 8px;
-  padding: 14px;
+  padding: 18px;
   text-align: center;
-  font-size: clamp(1.4rem, 4vw, 2.2rem);
+  font-size: clamp(1.7rem, 5vw, 2.7rem);
   line-height: 1.2;
 }
 
