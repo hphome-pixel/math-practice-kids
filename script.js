@@ -1,6 +1,7 @@
 const TOTAL_QUESTIONS = 10;
 
 const setupView = document.querySelector("#setupView");
+const settingsView = document.querySelector("#settingsView");
 const quizView = document.querySelector("#quizView");
 const reciteView = document.querySelector("#reciteView");
 const resultView = document.querySelector("#resultView");
@@ -19,21 +20,36 @@ const reviewList = document.querySelector("#reviewList");
 const clearWritingButton = document.querySelector("#clearWritingButton");
 const submitAnswerButton = document.querySelector("#submitAnswerButton");
 const startButton = document.querySelector("#startButton");
+const settingsButton = document.querySelector("#settingsButton");
 const arithmeticSettings = document.querySelector("#arithmeticSettings");
 const multiplySettings = document.querySelector("#multiplySettings");
 const divideSettings = document.querySelector("#divideSettings");
+const addDifficultySettings = document.querySelector("#addDifficultySettings");
+const subtractDifficultySettings = document.querySelector("#subtractDifficultySettings");
 const reciteTitle = document.querySelector("#reciteTitle");
 const reciteList = document.querySelector("#reciteList");
 const toggleAnswersButton = document.querySelector("#toggleAnswersButton");
+const timedModeToggle = document.querySelector("#timedModeToggle");
+const soundToggle = document.querySelector("#soundToggle");
+const timeLimitInput = document.querySelector("#timeLimitInput");
+const timerText = document.querySelector("#timerText");
+const dailySummary = document.querySelector("#dailySummary");
 let nextQuestionTimer = null;
+let quizTimer = null;
 let digitTemplates = null;
+let audioContext = null;
 
 const state = {
-  practiceMode: "arithmetic",
-  operation: "mixed",
+  practiceMode: "add",
+  operation: "add",
   digits: 1,
   multiplyMode: "table-1",
   divideMode: "divide-1",
+  addDifficulty: "any",
+  subtractDifficulty: "any",
+  timedMode: false,
+  soundEnabled: true,
+  secondsLeft: 60,
   totalQuestions: TOTAL_QUESTIONS,
   current: 0,
   score: 0,
@@ -53,6 +69,8 @@ document.querySelector("#stopButton").addEventListener("click", stopQuiz);
 document.querySelector("#againButton").addEventListener("click", startQuiz);
 document.querySelector("#changeButton").addEventListener("click", showSetup);
 document.querySelector("#wrongOnlyButton").addEventListener("click", startWrongOnlyQuiz);
+settingsButton.addEventListener("click", showSettings);
+document.querySelector("#settingsBackButton").addEventListener("click", showSetup);
 document.querySelector("#reciteBackButton").addEventListener("click", showSetup);
 toggleAnswersButton.addEventListener("click", toggleReciteAnswers);
 document.querySelector("#prevTableButton").addEventListener("click", () => changeReciteTable(-1));
@@ -65,15 +83,27 @@ document.querySelectorAll("input[name='practiceMode']").forEach((input) => {
 document.querySelectorAll("input[name='multiplyMode']").forEach((input) => {
   input.addEventListener("change", updateStartButtonText);
 });
+timedModeToggle.addEventListener("change", updateStartButtonText);
+timeLimitInput.addEventListener("input", updateStartButtonText);
+soundToggle.addEventListener("change", () => {
+  state.soundEnabled = soundToggle.checked;
+});
 updateSetupMode();
+renderDailySummary();
 
 function startQuiz() {
   clearNextQuestionTimer();
+  clearQuizTimer();
   state.practiceMode = document.querySelector("input[name='practiceMode']:checked").value;
   state.operation = getSelectedOperation(state.practiceMode);
   state.digits = Number(document.querySelector("input[name='digits']:checked").value);
   state.multiplyMode = document.querySelector("input[name='multiplyMode']:checked").value;
   state.divideMode = document.querySelector("input[name='divideMode']:checked").value;
+  state.addDifficulty = document.querySelector("input[name='addDifficulty']:checked").value;
+  state.subtractDifficulty = document.querySelector("input[name='subtractDifficulty']:checked").value;
+  state.timedMode = timedModeToggle.checked;
+  state.soundEnabled = soundToggle.checked;
+  state.secondsLeft = getTimeLimitSeconds();
 
   if (state.practiceMode === "multiply" && state.multiplyMode.startsWith("recite-")) {
     showRecitation(Number(state.multiplyMode.replace("recite-", "")));
@@ -82,24 +112,33 @@ function startQuiz() {
 
   state.current = 0;
   state.score = 0;
-  state.totalQuestions = TOTAL_QUESTIONS;
+  state.totalQuestions = state.timedMode ? Number.POSITIVE_INFINITY : TOTAL_QUESTIONS;
+  state.secondsLeft = getTimeLimitSeconds();
   state.questionQueue = null;
   state.reviewRecords = [];
   state.awaitingNext = false;
 
   setupView.classList.add("hidden");
+  settingsView.classList.add("hidden");
   reciteView.classList.add("hidden");
   resultView.classList.add("hidden");
   quizView.classList.remove("hidden");
   feedbackText.textContent = "";
   feedbackText.className = "feedback";
   updateStars();
+  updateTimerDisplay();
+  if (state.timedMode) {
+    startQuizTimer();
+  }
   nextQuestion();
 }
 
 function updateSetupMode() {
   const practiceMode = document.querySelector("input[name='practiceMode']:checked").value;
-  arithmeticSettings.classList.toggle("hidden", practiceMode !== "arithmetic");
+  const isArithmetic = practiceMode === "add" || practiceMode === "subtract";
+  arithmeticSettings.classList.toggle("hidden", !isArithmetic);
+  addDifficultySettings.classList.toggle("hidden", practiceMode !== "add");
+  subtractDifficultySettings.classList.toggle("hidden", practiceMode !== "subtract");
   multiplySettings.classList.toggle("hidden", practiceMode !== "multiply");
   divideSettings.classList.toggle("hidden", practiceMode !== "divide");
   updateStartButtonText();
@@ -108,27 +147,53 @@ function updateSetupMode() {
 function updateStartButtonText() {
   const practiceMode = document.querySelector("input[name='practiceMode']:checked").value;
   const multiplyMode = document.querySelector("input[name='multiplyMode']:checked").value;
-  startButton.textContent = practiceMode === "multiply" && multiplyMode.startsWith("recite-")
-    ? "開始背誦"
-    : "開始 10 題";
+  if (practiceMode === "multiply" && multiplyMode.startsWith("recite-")) {
+    startButton.textContent = "開始背誦";
+  } else {
+    startButton.textContent = timedModeToggle.checked ? `開始 ${getTimeLimitSeconds()} 秒` : "開始 10 題";
+  }
+}
+
+function getTimeLimitSeconds() {
+  const value = Number(timeLimitInput.value);
+  if (!Number.isFinite(value)) {
+    return 60;
+  }
+
+  const seconds = Math.min(600, Math.max(10, Math.round(value)));
+  timeLimitInput.value = String(seconds);
+  return seconds;
 }
 
 function showSetup() {
   clearNextQuestionTimer();
+  clearQuizTimer();
   state.locked = false;
   state.awaitingNext = false;
   state.questionQueue = null;
   submitAnswerButton.disabled = false;
   submitAnswerButton.textContent = "確認";
   resultView.classList.add("hidden");
+  settingsView.classList.add("hidden");
   quizView.classList.add("hidden");
   reciteView.classList.add("hidden");
   setupView.classList.remove("hidden");
   stars.textContent = "☆☆☆☆☆";
+  timerText.classList.add("hidden");
   setWritingDisabled(false);
   clearWriting();
   feedbackText.textContent = "";
   feedbackText.className = "feedback";
+}
+
+function showSettings() {
+  clearNextQuestionTimer();
+  clearQuizTimer();
+  setupView.classList.add("hidden");
+  quizView.classList.add("hidden");
+  reciteView.classList.add("hidden");
+  resultView.classList.add("hidden");
+  settingsView.classList.remove("hidden");
 }
 
 function stopQuiz() {
@@ -145,18 +210,22 @@ function startWrongOnlyQuiz() {
   }
 
   clearNextQuestionTimer();
+  clearQuizTimer();
   state.questionQueue = wrongQuestions;
   state.totalQuestions = wrongQuestions.length;
+  state.timedMode = false;
   state.current = 0;
   state.score = 0;
   state.reviewRecords = [];
   state.awaitingNext = false;
   setupView.classList.add("hidden");
+  settingsView.classList.add("hidden");
   reciteView.classList.add("hidden");
   resultView.classList.add("hidden");
   quizView.classList.remove("hidden");
   feedbackText.textContent = "";
   feedbackText.className = "feedback";
+  updateTimerDisplay();
   updateStars();
   nextQuestion();
 }
@@ -164,6 +233,7 @@ function startWrongOnlyQuiz() {
 function showRecitation(tableNumber) {
   state.multiplyMode = `recite-${tableNumber}`;
   setupView.classList.add("hidden");
+  settingsView.classList.add("hidden");
   quizView.classList.add("hidden");
   resultView.classList.add("hidden");
   reciteView.classList.remove("hidden");
@@ -208,7 +278,7 @@ function renderRecitationTable(tableNumber) {
 }
 
 function nextQuestion() {
-  if (state.current >= state.totalQuestions) {
+  if (!state.timedMode && state.current >= state.totalQuestions) {
     showResult();
     return;
   }
@@ -223,9 +293,13 @@ function nextQuestion() {
   clearWriting();
   feedbackText.textContent = "";
   feedbackText.className = "feedback hidden";
-  questionCount.textContent = `第 ${state.current} / ${state.totalQuestions} 題`;
+  questionCount.textContent = state.timedMode
+    ? `第 ${state.current} 題`
+    : `第 ${state.current} / ${state.totalQuestions} 題`;
   scoreText.textContent = `答對 ${state.score} 題`;
-  progressFill.style.width = `${((state.current - 1) / state.totalQuestions) * 100}%`;
+  progressFill.style.width = state.timedMode
+    ? `${((getTimeLimitSeconds() - state.secondsLeft) / getTimeLimitSeconds()) * 100}%`
+    : `${((state.current - 1) / state.totalQuestions) * 100}%`;
   answerInput.value = "";
   submitAnswerButton.disabled = false;
   submitAnswerButton.textContent = "確認";
@@ -255,11 +329,12 @@ function checkAnswer(event) {
 
   state.locked = true;
   setWritingDisabled(true);
-  const userAnswer = Number(writtenAnswer);
-  const isCorrect = userAnswer === state.question.answer;
+  const expectedAnswer = getExpectedAnswer(state.question);
+  const isCorrect = writtenAnswer === expectedAnswer;
   state.reviewRecords.push({
     question: { ...state.question },
     userAnswer: writtenAnswer,
+    userAnswerDisplay: formatAnswerForDisplay(state.question, writtenAnswer),
     isCorrect,
   });
 
@@ -268,42 +343,54 @@ function checkAnswer(event) {
     feedbackText.textContent = "答對了！";
     feedbackText.className = "feedback feedback-card correct";
     submitAnswerButton.disabled = true;
+    playFeedbackSound(true);
   } else {
-    feedbackText.textContent = `差一點！答案是 ${state.question.answer}`;
+    feedbackText.textContent = `差一點！答案是 ${getAnswerDisplay(state.question)}`;
     feedbackText.className = "feedback feedback-card wrong";
     state.awaitingNext = true;
     submitAnswerButton.textContent = "下一題";
+    playFeedbackSound(false);
   }
 
   updateStars();
   scoreText.textContent = `答對 ${state.score} 題`;
-  progressFill.style.width = `${(state.current / state.totalQuestions) * 100}%`;
+  progressFill.style.width = state.timedMode
+    ? `${((getTimeLimitSeconds() - state.secondsLeft) / getTimeLimitSeconds()) * 100}%`
+    : `${(state.current / state.totalQuestions) * 100}%`;
   if (isCorrect) {
     nextQuestionTimer = setTimeout(nextQuestion, 1000);
   }
 }
 
 function showResult() {
+  clearQuizTimer();
   quizView.classList.add("hidden");
   resultView.classList.remove("hidden");
-  resultScore.textContent = `${state.score} / ${state.totalQuestions}`;
+  const answeredCount = state.reviewRecords.length;
+  const resultTotal = state.timedMode ? answeredCount : state.totalQuestions;
+  resultScore.textContent = `${state.score} / ${resultTotal}`;
   progressFill.style.width = "100%";
 
-  if (state.score === state.totalQuestions) {
+  if (resultTotal === 0) {
+    resultMessage.textContent = "這次還沒作答，準備好再試一次。";
+  } else if (state.score === resultTotal) {
     resultMessage.textContent = "全部答對，太厲害了！";
-  } else if (state.score / state.totalQuestions >= 0.8) {
+  } else if (state.score / resultTotal >= 0.8) {
     resultMessage.textContent = "很棒，繼續保持！";
-  } else if (state.score / state.totalQuestions >= 0.5) {
+  } else if (state.score / resultTotal >= 0.5) {
     resultMessage.textContent = "有進步，再練一輪會更熟。";
   } else {
     resultMessage.textContent = "慢慢來，每次多會一點就很好。";
   }
 
+  saveDailyPractice(resultTotal, state.score);
+  renderDailySummary();
   renderReviewRecords();
 }
 
 function updateStars() {
-  const filled = Math.round((state.score / state.totalQuestions) * 5);
+  const starTotal = state.timedMode ? Math.max(state.reviewRecords.length, 1) : state.totalQuestions;
+  const filled = Math.round((state.score / starTotal) * 5);
   stars.textContent = "★".repeat(filled) + "☆".repeat(5 - filled);
 }
 
@@ -314,12 +401,12 @@ function renderReviewRecords() {
   reviewList.innerHTML = state.reviewRecords.map((record, index) => {
     const status = record.isCorrect ? "答對" : "答錯";
     const answerText = record.isCorrect
-      ? `你寫 ${record.userAnswer}`
-      : `你寫 ${record.userAnswer}，答案是 ${record.question.answer}`;
+      ? `你寫 ${record.userAnswerDisplay}`
+      : `你寫 ${record.userAnswerDisplay}，答案是 ${getAnswerDisplay(record.question)}`;
     return `
       <div class="review-row ${record.isCorrect ? "correct" : "wrong"}">
         <span>第 ${index + 1} 題</span>
-        <strong>${record.question.text.replace("?", record.question.answer)}</strong>
+        <strong>${record.question.text.replace("?", getAnswerDisplay(record.question))}</strong>
         <small>${status}：${answerText}</small>
       </div>
     `;
@@ -331,8 +418,7 @@ function makeQuestion(operation, digits, multiplyMode, divideMode) {
   const range = getRange(digits);
 
   if (pickedOperation === "add") {
-    const a = randomInt(range.min, range.max);
-    const b = randomInt(range.min, range.max);
+    const { a, b } = makeAdditionNumbers(range, state.addDifficulty);
     return { text: `${a} + ${b} = ?`, answer: a + b, operation: "add", a, b };
   }
 
@@ -344,10 +430,7 @@ function makeQuestion(operation, digits, multiplyMode, divideMode) {
     return makeDivideQuestion(divideMode);
   }
 
-  const first = randomInt(range.min, range.max);
-  const second = randomInt(range.min, range.max);
-  const a = Math.max(first, second);
-  const b = Math.min(first, second);
+  const { a, b } = makeSubtractionNumbers(range, state.subtractDifficulty);
   return { text: `${a} - ${b} = ?`, answer: a - b, operation: "subtract", a, b };
 }
 
@@ -410,7 +493,6 @@ function renderQuestion(question) {
 
 function renderHorizontalQuestion(question) {
   const answerDigits = String(question.answer);
-  const columns = answerDigits.length;
   const operatorByOperation = {
     divide: "÷",
     multiply: "×",
@@ -512,7 +594,76 @@ function makeDivideQuestion(divideMode) {
   };
 }
 
+function makeAdditionNumbers(range, difficulty) {
+  return makeNumbersByRule(
+    range,
+    (a, b) => {
+      if (difficulty === "noCarry") {
+        return !hasCarry(a, b);
+      }
+      if (difficulty === "carry") {
+        return hasCarry(a, b);
+      }
+      return true;
+    },
+    () => ({ a: randomInt(range.min, range.max), b: randomInt(range.min, range.max) }),
+  );
+}
+
+function makeSubtractionNumbers(range, difficulty) {
+  return makeNumbersByRule(
+    range,
+    (a, b) => {
+      if (difficulty === "noBorrow") {
+        return !hasBorrow(a, b);
+      }
+      if (difficulty === "borrow") {
+        return hasBorrow(a, b);
+      }
+      return true;
+    },
+    () => {
+      const first = randomInt(range.min, range.max);
+      const second = randomInt(range.min, range.max);
+      return { a: Math.max(first, second), b: Math.min(first, second) };
+    },
+  );
+}
+
+function makeNumbersByRule(range, isMatch, makeCandidate) {
+  for (let attempt = 0; attempt < 300; attempt += 1) {
+    const candidate = makeCandidate();
+    if (isMatch(candidate.a, candidate.b)) {
+      return candidate;
+    }
+  }
+
+  return makeCandidate();
+}
+
+function hasCarry(a, b) {
+  const columns = Math.max(String(a).length, String(b).length);
+  const aDigits = padDigits(String(a), columns);
+  const bDigits = padDigits(String(b), columns);
+  return aDigits.some((digit, index) => Number(digit || 0) + Number(bDigits[index] || 0) >= 10);
+}
+
+function hasBorrow(a, b) {
+  const columns = Math.max(String(a).length, String(b).length);
+  const aDigits = padDigits(String(a), columns);
+  const bDigits = padDigits(String(b), columns);
+  return aDigits.some((digit, index) => Number(digit || 0) < Number(bDigits[index] || 0));
+}
+
 function getSelectedOperation(practiceMode) {
+  if (practiceMode === "add") {
+    return "add";
+  }
+
+  if (practiceMode === "subtract") {
+    return "subtract";
+  }
+
   if (practiceMode === "multiply") {
     return "multiply";
   }
@@ -521,7 +672,7 @@ function getSelectedOperation(practiceMode) {
     return "divide";
   }
 
-  return document.querySelector("input[name='operation']:checked").value;
+  return "add";
 }
 
 function getRange(digits) {
@@ -539,11 +690,109 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function playFeedbackSound(isCorrect) {
+  if (!state.soundEnabled) {
+    return;
+  }
+
+  audioContext ??= new (window.AudioContext || window.webkitAudioContext)();
+  const now = audioContext.currentTime;
+  const notes = isCorrect ? [523.25, 659.25, 783.99] : [220, 185];
+  notes.forEach((frequency, index) => {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(frequency, now + index * 0.08);
+    gain.gain.setValueAtTime(0.0001, now + index * 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.12, now + index * 0.08 + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.08 + 0.12);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start(now + index * 0.08);
+    oscillator.stop(now + index * 0.08 + 0.14);
+  });
+}
+
+function getTodayKey() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getDailyPractice() {
+  try {
+    const rawData = localStorage.getItem("mathPracticeDaily");
+    const data = rawData ? JSON.parse(rawData) : null;
+    if (data?.date === getTodayKey()) {
+      return data;
+    }
+  } catch {
+    // Ignore damaged localStorage data and start fresh for today.
+  }
+
+  return { date: getTodayKey(), sessions: 0, questions: 0, correct: 0 };
+}
+
+function saveDailyPractice(questions, correct) {
+  if (questions === 0) {
+    return;
+  }
+
+  const data = getDailyPractice();
+  data.sessions += 1;
+  data.questions += questions;
+  data.correct += correct;
+  try {
+    localStorage.setItem("mathPracticeDaily", JSON.stringify(data));
+  } catch {
+    // The app still works if the browser blocks localStorage.
+  }
+}
+
+function renderDailySummary() {
+  const data = getDailyPractice();
+  if (data.questions === 0) {
+    dailySummary.textContent = "今天還沒完成練習";
+    return;
+  }
+
+  const accuracy = Math.round((data.correct / data.questions) * 100);
+  dailySummary.textContent = `今天完成 ${data.sessions} 次，練了 ${data.questions} 題，答對率 ${accuracy}%`;
+}
+
 function clearNextQuestionTimer() {
   if (nextQuestionTimer) {
     clearTimeout(nextQuestionTimer);
     nextQuestionTimer = null;
   }
+}
+
+function startQuizTimer() {
+  clearQuizTimer();
+  const totalSeconds = getTimeLimitSeconds();
+  quizTimer = setInterval(() => {
+    state.secondsLeft = Math.max(0, state.secondsLeft - 1);
+    updateTimerDisplay();
+    progressFill.style.width = `${((totalSeconds - state.secondsLeft) / totalSeconds) * 100}%`;
+    if (state.secondsLeft === 0) {
+      clearNextQuestionTimer();
+      showResult();
+    }
+  }, 1000);
+}
+
+function clearQuizTimer() {
+  if (quizTimer) {
+    clearInterval(quizTimer);
+    quizTimer = null;
+  }
+}
+
+function updateTimerDisplay() {
+  timerText.classList.toggle("hidden", !state.timedMode);
+  timerText.textContent = `剩 ${state.secondsLeft} 秒`;
 }
 
 function buildWritingBoxes() {
@@ -651,6 +900,18 @@ function recognizeAnswer() {
     .join("")
     .replace(/^0+(?=\d)/, "");
   return digits;
+}
+
+function getExpectedAnswer(question) {
+  return String(question.answer);
+}
+
+function getAnswerDisplay(question) {
+  return String(question.answer);
+}
+
+function formatAnswerForDisplay(question, answer) {
+  return answer;
 }
 
 function recognizeDigit(box) {

@@ -14,7 +14,10 @@
             <p class="eyebrow">Math Practice</p>
             <h1 id="app-title">數學練習</h1>
           </div>
-          <div class="stars" id="stars" aria-label="答對星星">☆☆☆☆☆</div>
+          <div class="top-actions">
+            <button class="secondary-button compact-button" id="settingsButton" type="button">設定</button>
+            <div class="stars" id="stars" aria-label="答對星星">☆☆☆☆☆</div>
+          </div>
         </div>
 
         <section class="setup-view" id="setupView">
@@ -22,10 +25,16 @@
             <h2>選擇練習</h2>
             <div class="mode-grid" role="radiogroup" aria-label="練習模式">
               <label class="mode-card">
-                <input type="radio" name="practiceMode" value="arithmetic" checked />
-                <strong class="mode-symbol">+ −</strong>
-                <span>加減法練習</span>
-                <small>加法、減法、加減混合</small>
+                <input type="radio" name="practiceMode" value="add" checked />
+                <strong class="mode-symbol">+</strong>
+                <span>加法練習</span>
+                <small>直式加法、進位練習</small>
+              </label>
+              <label class="mode-card">
+                <input type="radio" name="practiceMode" value="subtract" />
+                <strong class="mode-symbol">−</strong>
+                <span>減法練習</span>
+                <small>直式減法、借位練習</small>
               </label>
               <label class="mode-card">
                 <input type="radio" name="practiceMode" value="multiply" />
@@ -43,13 +52,6 @@
           </div>
 
           <div class="field-group" id="arithmeticSettings">
-            <h2>選擇題型</h2>
-            <div class="segmented" role="radiogroup" aria-label="加減法題型">
-              <label><input type="radio" name="operation" value="mixed" checked />加減混合</label>
-              <label><input type="radio" name="operation" value="add" />加法</label>
-              <label><input type="radio" name="operation" value="subtract" />減法</label>
-            </div>
-
             <h2>選擇位數</h2>
             <div class="option-grid" role="radiogroup" aria-label="位數">
               <label class="option-card">
@@ -72,6 +74,26 @@
                 <span>千位</span>
                 <small>1000 到 9999</small>
               </label>
+            </div>
+
+            <h2>難度設定</h2>
+            <div class="difficulty-grid">
+              <div id="addDifficultySettings">
+                <h3>加法</h3>
+                <div class="segmented two-options" role="radiogroup" aria-label="加法難度">
+                  <label><input type="radio" name="addDifficulty" value="any" checked />不限</label>
+                  <label><input type="radio" name="addDifficulty" value="noCarry" />不進位</label>
+                  <label><input type="radio" name="addDifficulty" value="carry" />有進位</label>
+                </div>
+              </div>
+              <div id="subtractDifficultySettings">
+                <h3>減法</h3>
+                <div class="segmented two-options" role="radiogroup" aria-label="減法難度">
+                  <label><input type="radio" name="subtractDifficulty" value="any" checked />不限</label>
+                  <label><input type="radio" name="subtractDifficulty" value="noBorrow" />不借位</label>
+                  <label><input type="radio" name="subtractDifficulty" value="borrow" />有借位</label>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -121,7 +143,35 @@
             </div>
           </div>
 
+          <div class="field-group">
+            <h2>練習選項</h2>
+            <div class="settings-grid">
+              <label class="toggle-card">
+                <input type="checkbox" id="timedModeToggle" />
+                <span>限時模式</span>
+                <small><input class="time-input" id="timeLimitInput" type="number" min="10" max="600" step="10" value="60" /> 秒內一直答題</small>
+              </label>
+            </div>
+          </div>
+
+          <div class="daily-card" id="dailyCard">
+            <h2>今日練習</h2>
+            <div id="dailySummary">今天還沒完成練習</div>
+          </div>
+
           <button class="primary-button" id="startButton" type="button">開始 10 題</button>
+        </section>
+
+        <section class="settings-view hidden" id="settingsView">
+          <div class="settings-header">
+            <h2>設定</h2>
+            <button class="secondary-button compact-button" id="settingsBackButton" type="button">回主選單</button>
+          </div>
+          <label class="toggle-card">
+            <input type="checkbox" id="soundToggle" checked />
+            <span>鼓勵音效</span>
+            <small>答對答錯都有提示音，可以隨時關閉</small>
+          </label>
         </section>
 
         <section class="quiz-view hidden" id="quizView" aria-live="polite">
@@ -131,6 +181,7 @@
           <div class="progress-row">
             <span id="questionCount">第 1 / 10 題</span>
             <span id="scoreText">答對 0 題</span>
+            <span class="timer-text hidden" id="timerText">剩 60 秒</span>
           </div>
           <div class="progress-bar" aria-hidden="true">
             <div id="progressFill"></div>
