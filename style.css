@@ -49,6 +49,11 @@ input {
   padding: clamp(20px, 4vw, 40px);
 }
 
+.content-panel {
+  display: grid;
+  gap: 24px;
+}
+
 .topbar {
   display: flex;
   align-items: flex-start;
@@ -329,6 +334,28 @@ h3 {
 
 .settings-header h2 {
   margin-bottom: 0;
+}
+
+.version-card {
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: #ffffff;
+}
+
+.version-card span {
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.version-card strong {
+  color: var(--green);
+  font-size: 1.2rem;
 }
 
 .daily-card {
@@ -1072,6 +1099,90 @@ h3 {
   justify-content: center;
 }
 
+.site-footer {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.site-footer a,
+.text-link {
+  color: var(--green-dark);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.site-footer a:hover,
+.text-link:hover {
+  text-decoration: underline;
+}
+
+.page-header {
+  display: grid;
+  gap: 10px;
+}
+
+.page-header h1 {
+  font-size: clamp(2rem, 6vw, 3.7rem);
+}
+
+.page-header p {
+  max-width: 760px;
+  color: var(--muted);
+  font-size: 1.05rem;
+  font-weight: 750;
+  line-height: 1.7;
+}
+
+.content-section {
+  display: grid;
+  gap: 12px;
+}
+
+.content-section p,
+.content-section li {
+  color: var(--muted);
+  font-weight: 720;
+  line-height: 1.75;
+}
+
+.content-section ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.info-card {
+  display: grid;
+  gap: 8px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  background: #ffffff;
+}
+
+.info-card strong {
+  color: var(--ink);
+  font-size: 1.05rem;
+}
+
+.info-card span {
+  color: var(--muted);
+  font-weight: 720;
+  line-height: 1.6;
+}
+
 @media (max-width: 720px) {
   .app-shell {
     padding: 8px;
@@ -1341,6 +1452,10 @@ h3 {
 
   .recite-row strong {
     min-width: 54px;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
   }
 
   .mode-card {
