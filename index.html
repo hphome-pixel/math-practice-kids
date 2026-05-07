@@ -15,8 +15,9 @@
             <h1 id="app-title">數學練習</h1>
           </div>
           <div class="top-actions">
+            <button class="secondary-button compact-button" id="characterButton" type="button">角色</button>
             <button class="secondary-button compact-button" id="settingsButton" type="button">設定</button>
-            <div class="stars" id="stars" aria-label="答對星星">☆☆☆☆☆</div>
+            <div class="top-coin" id="coinText" aria-label="目前金幣">🪙 0</div>
           </div>
         </div>
 
@@ -210,8 +211,73 @@
           </label>
           <div class="version-card">
             <span>版本</span>
-            <strong>v1.2.0</strong>
+            <strong>v2.4.1</strong>
           </div>
+        </section>
+
+        <section class="character-view hidden" id="characterView">
+          <div class="settings-header">
+            <h2>我的角色</h2>
+            <button class="secondary-button compact-button" id="characterBackButton" type="button">回主選單</button>
+          </div>
+          <section class="character-panel" id="characterPanel">
+            <div class="character-header">
+              <div>
+                <p id="characterHint">選擇一位陪你一起練習的夥伴</p>
+              </div>
+              <div class="coin-pill"><span id="characterCoinText">🪙 0</span></div>
+            </div>
+            <div class="game-stats">
+              <div>
+                <span>等級</span>
+                <strong id="levelText">Lv.1</strong>
+              </div>
+              <div>
+                <span>XP</span>
+                <strong id="xpText">0 / 100</strong>
+              </div>
+              <div>
+                <span>連勝</span>
+                <strong id="streakText">0</strong>
+              </div>
+            </div>
+
+            <div class="character-choice" id="characterChoice">
+              <button class="character-choice-card" type="button" data-character="boy">
+                <img class="choice-character-image" src="assets/characters/cards/boy.png" alt="小男孩" />
+                <strong>小男孩</strong>
+              </button>
+              <button class="character-choice-card" type="button" data-character="girl">
+                <img class="choice-character-image" src="assets/characters/cards/girl.png" alt="小女孩" />
+                <strong>小女孩</strong>
+              </button>
+            </div>
+
+            <div class="character-dashboard hidden" id="characterDashboard">
+              <div class="avatar-stage" id="avatarStage" aria-label="角色預覽"></div>
+              <div class="character-actions">
+                <button class="secondary-button compact-button" id="changeCharacterButton" type="button">換角色</button>
+                <p id="chestMessage">完成 10 題可獲得 1G。</p>
+              </div>
+              <div class="chest-panel">
+                <button class="primary-button compact-button" id="openChestButton" type="button">開寶箱 50 金幣</button>
+                <p>收集完整角色，不再疊裝備。</p>
+              </div>
+              <div class="inventory-panel">
+                <h3>角色收藏</h3>
+                <div class="inventory-grid" id="inventoryGrid"></div>
+              </div>
+              <div class="gm-panel">
+                <h3>GM 測試</h3>
+                <div class="gm-actions">
+                  <button class="secondary-button compact-button" id="gmAddCoinsButton" type="button">+10G</button>
+                  <button class="secondary-button compact-button" id="gmUnlockAllButton" type="button">解鎖全部</button>
+                  <button class="secondary-button compact-button" id="gmOpenChestButton" type="button">測試寶箱</button>
+                  <button class="secondary-button compact-button" id="gmResetCharacterButton" type="button">重置角色</button>
+                </div>
+              </div>
+            </div>
+          </section>
         </section>
 
         <section class="quiz-view hidden" id="quizView" aria-live="polite">
@@ -303,8 +369,22 @@
           </div>
           <div class="result-actions">
             <button class="secondary-button hidden" id="wrongOnlyButton" type="button">只練錯題</button>
+            <button class="primary-button hidden" id="claimChestButton" type="button">領取寶箱</button>
             <button class="secondary-button" id="againButton" type="button">再練一次</button>
             <button class="primary-button" id="changeButton" type="button">重新選擇</button>
+          </div>
+        </section>
+
+        <section class="reward-chest-overlay hidden" id="rewardChestOverlay" aria-live="polite">
+          <div class="reward-chest-card">
+            <p class="reward-kicker">回合獎勵</p>
+            <h2 id="rewardChestTitle">獲得寶箱！</h2>
+            <button class="reward-chest-button" id="rewardChestButton" type="button" aria-label="點擊開啟寶箱">
+              <span class="reward-chest-icon" aria-hidden="true">🎁</span>
+            </button>
+            <p class="reward-chest-hint" id="rewardChestHint">點擊寶箱開啟</p>
+            <div class="reward-chest-result hidden" id="rewardChestResult"></div>
+            <button class="primary-button compact-button hidden" id="rewardChestCloseButton" type="button">回主選單</button>
           </div>
         </section>
         <footer class="site-footer">

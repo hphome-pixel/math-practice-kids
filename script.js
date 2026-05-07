@@ -1,14 +1,16 @@
 const TOTAL_QUESTIONS = 10;
 const PUZZLE_QUESTIONS = 9;
+const CHEST_COST = 50;
 
 const setupView = document.querySelector("#setupView");
 const settingsView = document.querySelector("#settingsView");
+const characterView = document.querySelector("#characterView");
 const quizView = document.querySelector("#quizView");
 const monsterView = document.querySelector("#monsterView");
 const puzzleView = document.querySelector("#puzzleView");
 const reciteView = document.querySelector("#reciteView");
 const resultView = document.querySelector("#resultView");
-const stars = document.querySelector("#stars");
+const coinText = document.querySelector("#coinText");
 const questionCount = document.querySelector("#questionCount");
 const scoreText = document.querySelector("#scoreText");
 const progressFill = document.querySelector("#progressFill");
@@ -24,6 +26,7 @@ const clearWritingButton = document.querySelector("#clearWritingButton");
 const submitAnswerButton = document.querySelector("#submitAnswerButton");
 const startButton = document.querySelector("#startButton");
 const settingsButton = document.querySelector("#settingsButton");
+const characterButton = document.querySelector("#characterButton");
 const arithmeticSettings = document.querySelector("#arithmeticSettings");
 const multiplySettings = document.querySelector("#multiplySettings");
 const divideSettings = document.querySelector("#divideSettings");
@@ -54,10 +57,34 @@ const puzzleChoices = document.querySelector("#puzzleChoices");
 const puzzleFeedback = document.querySelector("#puzzleFeedback");
 const puzzleBoard = document.querySelector("#puzzleBoard");
 const puzzleResultButton = document.querySelector("#puzzleResultButton");
+const characterChoice = document.querySelector("#characterChoice");
+const characterDashboard = document.querySelector("#characterDashboard");
+const avatarStage = document.querySelector("#avatarStage");
+const characterCoinText = document.querySelector("#characterCoinText");
+const levelText = document.querySelector("#levelText");
+const xpText = document.querySelector("#xpText");
+const streakText = document.querySelector("#streakText");
+const chestMessage = document.querySelector("#chestMessage");
+const openChestButton = document.querySelector("#openChestButton");
+const rewardChestOverlay = document.querySelector("#rewardChestOverlay");
+const rewardChestButton = document.querySelector("#rewardChestButton");
+const rewardChestHint = document.querySelector("#rewardChestHint");
+const rewardChestResult = document.querySelector("#rewardChestResult");
+const rewardChestCloseButton = document.querySelector("#rewardChestCloseButton");
+const claimChestButton = document.querySelector("#claimChestButton");
+const changeCharacterButton = document.querySelector("#changeCharacterButton");
+const inventoryGrid = document.querySelector("#inventoryGrid");
+const characterHint = document.querySelector("#characterHint");
+const gmAddCoinsButton = document.querySelector("#gmAddCoinsButton");
+const gmUnlockAllButton = document.querySelector("#gmUnlockAllButton");
+const gmOpenChestButton = document.querySelector("#gmOpenChestButton");
+const gmResetCharacterButton = document.querySelector("#gmResetCharacterButton");
 let nextQuestionTimer = null;
 let quizTimer = null;
 let digitTemplates = null;
 let audioContext = null;
+let pendingRoundChest = false;
+let pendingChestCost = 0;
 
 const translations = {
   en: {
@@ -73,6 +100,47 @@ const translations = {
     "全部拼好了，先看一下完成的圖片。": "All pieces are complete. Take a moment to enjoy the picture.",
     "先解開幾片也很棒，下一輪繼續。": "Unlocking a few pieces is still progress. Keep going next round.",
     "數學練習": "Math Practice",
+    "角色": "Character",
+    "我的角色": "My Character",
+    "選擇一位陪你一起練習的夥伴": "Choose a buddy to practice with you",
+    "小男孩": "Boy",
+    "小女孩": "Girl",
+    "寶箱 10G": "Chest 10G",
+    "開寶箱 50 金幣": "Open Chest 50 Coins",
+    "換角色": "Change Character",
+    "完成 10 題可獲得 1G。": "Complete 10 questions to earn 1G.",
+    "裝飾品": "Accessories",
+    "角色收藏": "Character Collection",
+    "目前角色": "Current Character",
+    "收集完整角色，不再疊裝備。": "Collect complete characters. No equipment layers.",
+    "裝備中": "Equipped",
+    "可裝備": "Equip",
+    "未獲得": "Locked",
+    "需要 10G 才能抽寶箱。": "You need 10G to open a chest.",
+    "需要 50 金幣才能抽寶箱。": "You need 50 coins to open a chest.",
+    "所有裝飾品都收集完成了！": "All accessories have been collected!",
+    "GM 測試": "GM Test",
+    "解鎖全部": "Unlock All",
+    "測試寶箱": "Test Chest",
+    "重置角色": "Reset Character",
+    "已記錄裝備，正式 PNG 素材製作中。": "Equipped in inventory. Official PNG art is in progress.",
+    "沒有可抽的新裝備了！": "No new equipment is available!",
+    "獲得獎勵": "Reward earned",
+    "等級": "Level",
+    "連勝": "Streak",
+    "開寶箱 10 金幣": "Open Chest 10 Coins",
+    "回合獎勵": "Round Reward",
+    "獲得寶箱！": "Chest earned!",
+    "點擊寶箱開啟": "Tap the chest to open",
+    "領取寶箱": "Claim Chest",
+    "寶箱打開中...": "Opening chest...",
+    "Combo": "Combo",
+    "連續答對": "Combo",
+    "不想斷": "Keep it going",
+    "做題賺金幣與 XP，開寶箱收集裝備。": "Answer questions to earn coins and XP, then open chests to collect gear.",
+    "普通": "Common",
+    "稀有": "Rare",
+    "傳說": "Legendary",
     "設定": "Settings",
     "選擇練習": "Choose Practice",
     "加法練習": "Addition Practice",
@@ -183,6 +251,205 @@ const translations = {
 
 const textNodes = [];
 
+const RARITY_LABELS = {
+  common: "普通",
+  rare: "稀有",
+  legendary: "傳說",
+};
+
+const XP_PER_LEVEL = 100;
+
+const accessoryCatalog = [
+  { id: "cap-sun", slot: "hat", name: "陽光帽", enName: "Sunny Cap", icon: "帽", className: "sun-cap" },
+  {
+    id: "hat-crown",
+    slot: "hat",
+    name: "小皇冠",
+    enName: "Tiny Crown",
+    icon: "冠",
+    className: "tiny-crown",
+    rarity: "legendary",
+    prototypeAssets: {
+      boy: "assets/accessories/boy/hat-crown.png",
+      girl: "assets/accessories/girl/hat-crown.png",
+    },
+    layeredAssets: {
+      boy: "assets/accessories/layered/boy/front/hat-crown.png",
+      girl: "assets/accessories/layered/girl/front/hat-crown.png",
+    },
+  },
+  { id: "hat-wizard", slot: "hat", name: "星星魔法帽", enName: "Star Wizard Hat", icon: "巫", className: "wizard-hat" },
+  { id: "hat-dino", slot: "hat", name: "恐龍帽", enName: "Dino Hood", icon: "龍", className: "dino-hood" },
+  { id: "hat-beret", slot: "hat", name: "畫家帽", enName: "Painter Beret", icon: "貝", className: "beret" },
+  { id: "hair-ribbon", slot: "hair", name: "粉色髮帶", enName: "Pink Headband", icon: "髮", className: "pink-headband" },
+  {
+    id: "hair-star",
+    slot: "hair",
+    name: "星星髮夾",
+    enName: "Star Clip",
+    icon: "星",
+    className: "star-clip",
+    rarity: "rare",
+    prototypeAssets: {
+      boy: "assets/accessories/boy/hair-star.png",
+      girl: "assets/accessories/girl/hair-star.png",
+    },
+    layeredAssets: {
+      boy: "assets/accessories/layered/boy/front/hair-star.png",
+      girl: "assets/accessories/layered/girl/front/hair-star.png",
+    },
+  },
+  { id: "hair-flower", slot: "hair", name: "小花髮飾", enName: "Flower Clip", icon: "花", className: "flower-clip" },
+  { id: "hair-blue-bow", slot: "hair", name: "藍色蝴蝶結", enName: "Blue Bow", icon: "結", className: "blue-bow" },
+  { id: "hair-laurel", slot: "hair", name: "月桂髮飾", enName: "Laurel Pin", icon: "葉", className: "laurel-pin" },
+  {
+    id: "top-mint",
+    slot: "top",
+    name: "薄荷上衣",
+    enName: "Mint Top",
+    icon: "衣",
+    className: "mint-top",
+    rarity: "common",
+    prototypeAssets: {
+      boy: "assets/accessories/boy/top-mint.png",
+      girl: "assets/accessories/girl/top-mint.png",
+    },
+    layeredAssets: {
+      boy: "assets/accessories/layered/boy/clothes/top-mint.png",
+      girl: "assets/accessories/layered/girl/clothes/top-mint.png",
+    },
+  },
+  { id: "top-yellow", slot: "top", name: "黃色帽T", enName: "Yellow Hoodie", icon: "T", className: "yellow-top" },
+  { id: "top-red", slot: "top", name: "紅色外套", enName: "Red Jacket", icon: "外", className: "red-top" },
+  { id: "top-purple", slot: "top", name: "紫色上衣", enName: "Purple Top", icon: "紫", className: "purple-top" },
+  { id: "top-sailor", slot: "top", name: "水手上衣", enName: "Sailor Top", icon: "海", className: "sailor-top" },
+  { id: "bottom-navy", slot: "bottom", name: "深藍短褲", enName: "Navy Shorts", icon: "褲", className: "navy-bottom" },
+  { id: "bottom-pink", slot: "bottom", name: "粉色短裙", enName: "Pink Skirt", icon: "裙", className: "pink-bottom" },
+  { id: "bottom-green", slot: "bottom", name: "綠色短褲", enName: "Green Shorts", icon: "綠", className: "green-bottom" },
+  { id: "bottom-orange", slot: "bottom", name: "橘色短褲", enName: "Orange Shorts", icon: "橘", className: "orange-bottom" },
+  {
+    id: "bottom-denim",
+    slot: "bottom",
+    name: "牛仔短褲",
+    enName: "Denim Shorts",
+    icon: "牛",
+    className: "denim-bottom",
+    rarity: "common",
+    prototypeAssets: {
+      boy: "assets/accessories/boy/bottom-denim.png",
+      girl: "assets/accessories/girl/bottom-denim.png",
+    },
+    layeredAssets: {
+      boy: "assets/accessories/layered/boy/clothes/bottom-denim.png",
+      girl: "assets/accessories/layered/girl/clothes/bottom-denim.png",
+    },
+  },
+  { id: "shoes-blue", slot: "shoes", name: "藍色球鞋", enName: "Blue Sneakers", icon: "鞋", className: "blue-shoes" },
+  { id: "shoes-pink", slot: "shoes", name: "粉色球鞋", enName: "Pink Sneakers", icon: "粉", className: "pink-shoes" },
+  {
+    id: "shoes-yellow",
+    slot: "shoes",
+    name: "黃色球鞋",
+    enName: "Yellow Sneakers",
+    icon: "黃",
+    className: "yellow-shoes",
+    rarity: "rare",
+    prototypeAssets: {
+      boy: "assets/accessories/boy/shoes-yellow.png",
+      girl: "assets/accessories/girl/shoes-yellow.png",
+    },
+    layeredAssets: {
+      boy: "assets/accessories/layered/boy/clothes/shoes-yellow.png",
+      girl: "assets/accessories/layered/girl/clothes/shoes-yellow.png",
+    },
+  },
+  { id: "shoes-red", slot: "shoes", name: "紅色靴子", enName: "Red Boots", icon: "靴", className: "red-shoes" },
+  { id: "shoes-mint", slot: "shoes", name: "薄荷鞋", enName: "Mint Shoes", icon: "薄", className: "mint-shoes" },
+  {
+    id: "hand-wand",
+    slot: "hand",
+    name: "星星棒",
+    enName: "Star Wand",
+    icon: "棒",
+    className: "star-wand",
+    rarity: "legendary",
+    prototypeAssets: {
+      boy: "assets/accessories/boy/hand-wand.png",
+      girl: "assets/accessories/girl/hand-wand.png",
+    },
+    layeredAssets: {
+      boy: "assets/accessories/layered/boy/front/hand-wand.png",
+      girl: "assets/accessories/layered/girl/front/hand-wand.png",
+    },
+  },
+  { id: "hand-book", slot: "hand", name: "數學書", enName: "Math Book", icon: "書", className: "math-book" },
+  { id: "hand-shield", slot: "hand", name: "勇氣盾牌", enName: "Courage Shield", icon: "盾", className: "shield" },
+  { id: "hand-balloon", slot: "hand", name: "愛心氣球", enName: "Heart Balloon", icon: "氣", className: "balloon" },
+  { id: "hand-pencil", slot: "hand", name: "鉛筆棒", enName: "Pencil Wand", icon: "筆", className: "pencil" },
+];
+
+const accessorySlots = [
+  { id: "hat", name: "帽子", enName: "Hats" },
+  { id: "hair", name: "髮飾", enName: "Hair" },
+  { id: "top", name: "上衣", enName: "Tops" },
+  { id: "bottom", name: "下衣", enName: "Bottoms" },
+  { id: "shoes", name: "鞋子", enName: "Shoes" },
+  { id: "hand", name: "手持物", enName: "Hand Items" },
+];
+
+const characterLayerAssets = {
+  boy: {
+    base: "assets/characters/boy-base.png",
+    bodyBack: "assets/characters/layers/boy/body-back.png",
+    bodyFront: "assets/characters/layers/boy/body-front.png",
+    hairFront: "assets/characters/layers/boy/head-hair-front.png",
+  },
+  girl: {
+    base: "assets/characters/girl-base.png",
+    bodyBack: "assets/characters/layers/girl/body-back.png",
+    bodyFront: "assets/characters/layers/girl/body-front.png",
+    hairFront: "assets/characters/layers/girl/head-hair-front.png",
+  },
+};
+
+const characterCatalog = [
+  { id: "boy", name: "元氣男孩", enName: "Bright Boy", rarity: "common", image: "assets/characters/cards/boy.png", owned: true },
+  { id: "boy_sport", name: "運動男孩", enName: "Sport Boy", rarity: "common", image: "assets/characters/cards/boy_sport.png" },
+  { id: "boy_star", name: "星星男孩", enName: "Star Boy", rarity: "rare", image: "assets/characters/cards/boy_star.png" },
+  { id: "boy_hero", name: "英雄男孩", enName: "Hero Boy", rarity: "rare", image: "assets/characters/cards/boy_hero.png" },
+  { id: "boy_legend", name: "傳說男孩", enName: "Legend Boy", rarity: "legendary", image: "assets/characters/cards/boy_legend.png" },
+  { id: "girl", name: "元氣女孩", enName: "Bright Girl", rarity: "common", image: "assets/characters/cards/girl.png", owned: true },
+  { id: "girl_flower", name: "花朵女孩", enName: "Flower Girl", rarity: "common", image: "assets/characters/cards/girl_flower.png" },
+  { id: "girl_star", name: "星星女孩", enName: "Star Girl", rarity: "rare", image: "assets/characters/cards/girl_star.png" },
+  { id: "girl_princess", name: "公主學生", enName: "Princess Student", rarity: "rare", image: "assets/characters/cards/girl_princess.png" },
+  { id: "girl_magic", name: "魔法學生", enName: "Magic Student", rarity: "legendary", image: "assets/characters/cards/girl_magic.png" },
+];
+
+const monsterTypes = [
+  { id: "vampire", name: "吸血鬼" },
+  { id: "werewolf", name: "狼人" },
+  { id: "zombie", name: "殭屍" },
+];
+
+const gameState = {
+  gold: 0,
+  gems: 0,
+  inventory: [],
+  unlockedCharacters: [],
+  equipped: {
+    hat: null,
+    hair: null,
+    top: null,
+    bottom: null,
+    shoes: null,
+    hand: null,
+  },
+  streak: 0,
+  combo: 0,
+  level: 1,
+  xp: 0,
+};
+
 const state = {
   practiceMode: "add",
   operation: "add",
@@ -192,6 +459,11 @@ const state = {
   miniGameMode: "monster",
   miniGameOperation: "add",
   language: getStoredLanguage(),
+  character: null,
+  coins: 0,
+  ownedAccessories: [],
+  equippedAccessories: {},
+  currentCombo: 0,
   addDifficulty: "any",
   subtractDifficulty: "any",
   timedMode: false,
@@ -206,6 +478,7 @@ const state = {
   monsterCurrent: 0,
   monsterScore: 0,
   monsterQuestion: null,
+  monsterTypeIndex: 0,
   monsterLocked: false,
   puzzleCurrent: 0,
   puzzleScore: 0,
@@ -227,8 +500,11 @@ document.querySelector("#stopButton").addEventListener("click", stopQuiz);
 document.querySelector("#againButton").addEventListener("click", startQuiz);
 document.querySelector("#changeButton").addEventListener("click", showSetup);
 document.querySelector("#wrongOnlyButton").addEventListener("click", startWrongOnlyQuiz);
+claimChestButton.addEventListener("click", claimResultChest);
 settingsButton.addEventListener("click", showSettings);
+characterButton.addEventListener("click", showCharacter);
 document.querySelector("#settingsBackButton").addEventListener("click", showSetup);
+document.querySelector("#characterBackButton").addEventListener("click", showSetup);
 document.querySelector("#monsterStopButton").addEventListener("click", showSetup);
 document.querySelector("#puzzleStopButton").addEventListener("click", showSetup);
 document.querySelector("#puzzleResultButton").addEventListener("click", showPuzzleResult);
@@ -250,6 +526,20 @@ document.querySelectorAll("input[name='miniGameMode']").forEach((input) => {
 document.querySelectorAll("input[name='miniGameOperation']").forEach((input) => {
   input.addEventListener("change", updateStartButtonText);
 });
+document.querySelectorAll("[data-character]").forEach((button) => {
+  button.addEventListener("click", () => chooseCharacter(button.dataset.character));
+});
+openChestButton.addEventListener("click", openChest);
+rewardChestButton.addEventListener("click", openRewardChest);
+rewardChestCloseButton.addEventListener("click", () => {
+  hideRewardChest();
+  showSetup();
+});
+changeCharacterButton.addEventListener("click", resetCharacterChoice);
+gmAddCoinsButton.addEventListener("click", gmAddCoins);
+gmUnlockAllButton.addEventListener("click", gmUnlockAll);
+gmOpenChestButton.addEventListener("click", gmOpenChest);
+gmResetCharacterButton.addEventListener("click", gmResetCharacter);
 timedModeToggle.addEventListener("change", updateStartButtonText);
 timeLimitInput.addEventListener("input", updateStartButtonText);
 soundToggle.addEventListener("change", () => {
@@ -263,10 +553,12 @@ languageSelect.addEventListener("change", () => {
   renderDailySummary();
 });
 collectTextNodes();
+loadCharacterState();
 languageSelect.value = state.language;
 applyLanguage();
 updateSetupMode();
 renderDailySummary();
+renderCharacterPanel();
 
 function getStoredLanguage() {
   try {
@@ -311,6 +603,7 @@ function applyLanguage() {
     node.nodeValue = originalValue.replace(zhText, translated);
   });
   updateInfoPageLinks();
+  renderCharacterPanel();
 }
 
 function updateInfoPageLinks() {
@@ -345,9 +638,824 @@ function formatWrongAnswer(answer) {
   return state.language === "en" ? `Almost! The answer is ${answer}` : `差一點！答案是 ${answer}`;
 }
 
+function loadCharacterState() {
+  try {
+    const rawGameState = localStorage.getItem("mathPracticeGameState");
+    const rawLegacyState = localStorage.getItem("mathPracticeCharacter");
+    const data = rawGameState ? JSON.parse(rawGameState) : rawLegacyState ? JSON.parse(rawLegacyState) : {};
+    state.character = data.character || null;
+    gameState.gold = Number(data.gold ?? data.coins) || 0;
+    gameState.gems = Number(data.gems) || 0;
+    gameState.inventory = Array.isArray(data.inventory)
+      ? data.inventory
+      : Array.isArray(data.ownedAccessories) ? data.ownedAccessories : [];
+    gameState.unlockedCharacters = Array.isArray(data.unlockedCharacters)
+      ? data.unlockedCharacters
+      : ["boy", "girl"];
+    gameState.unlockedCharacters = normalizeUnlockedCharacters(gameState.unlockedCharacters);
+    state.character = data.character ? normalizeCharacterId(state.character, gameState.unlockedCharacters) : null;
+    gameState.equipped = {
+      ...gameState.equipped,
+      ...(data.equipped || data.equippedAccessories || {}),
+    };
+    gameState.streak = Number(data.streak) || 0;
+    gameState.combo = Number(data.combo) || 0;
+    gameState.xp = Number(data.xp) || 0;
+    gameState.level = getLevelFromXp(gameState.xp);
+    syncLegacyGameFields();
+  } catch {
+    state.character = null;
+    gameState.gold = 0;
+    gameState.gems = 0;
+    gameState.inventory = [];
+    gameState.unlockedCharacters = ["boy", "girl"];
+    gameState.equipped = { hat: null, hair: null, top: null, bottom: null, shoes: null, hand: null };
+    gameState.streak = 0;
+    gameState.combo = 0;
+    gameState.xp = 0;
+    gameState.level = 1;
+    syncLegacyGameFields();
+  }
+}
+
+function saveCharacterState() {
+  syncLegacyGameFields();
+  try {
+    localStorage.setItem("mathPracticeGameState", JSON.stringify({
+      character: state.character,
+      gold: gameState.gold,
+      gems: gameState.gems,
+      inventory: gameState.inventory,
+      unlockedCharacters: gameState.unlockedCharacters,
+      equipped: gameState.equipped,
+      streak: gameState.streak,
+      combo: gameState.combo,
+      level: gameState.level,
+      xp: gameState.xp,
+    }));
+  } catch {
+    // The dress-up system still works for the current visit.
+  }
+}
+
+function syncLegacyGameFields() {
+  state.coins = gameState.gold;
+  state.ownedAccessories = gameState.inventory;
+  state.equippedAccessories = gameState.equipped;
+}
+
+function normalizeUnlockedCharacters(ids) {
+  const normalized = Array.from(new Set([...(ids || []), "boy", "girl"]));
+  return normalized.filter((id) => characterCatalog.some((character) => character.id === id));
+}
+
+function normalizeCharacterId(characterId, ownedIds) {
+  if (characterCatalog.some((character) => character.id === characterId) && ownedIds.includes(characterId)) {
+    return characterId;
+  }
+  return ownedIds[0] || "boy";
+}
+
+function getCharacterById(characterId) {
+  return characterCatalog.find((character) => character.id === characterId) || characterCatalog[0];
+}
+
+function getLevelFromXp(xp) {
+  return Math.floor(xp / XP_PER_LEVEL) + 1;
+}
+
+function getXpProgress() {
+  return gameState.xp % XP_PER_LEVEL;
+}
+
+function chooseCharacter(character) {
+  if (!gameState.unlockedCharacters.includes(character)) {
+    return;
+  }
+  state.character = character;
+  saveCharacterState();
+  renderCharacterPanel();
+}
+
+function resetCharacterChoice() {
+  state.character = null;
+  saveCharacterState();
+  renderCharacterPanel();
+}
+
+function renderCharacterPanel() {
+  updateTopCoins();
+  characterCoinText.innerHTML = formatCoinDisplay(gameState.gold);
+  levelText.textContent = `Lv.${gameState.level}`;
+  xpText.textContent = `${getXpProgress()} / ${XP_PER_LEVEL}`;
+  streakText.textContent = `${gameState.streak}`;
+  characterChoice.classList.toggle("hidden", Boolean(state.character));
+  characterDashboard.classList.toggle("hidden", !state.character);
+  characterHint.textContent = state.character
+    ? t("收集完整角色，不再疊裝備。")
+    : t("選擇一位陪你一起練習的夥伴");
+  openChestButton.disabled = gameState.gold < CHEST_COST || !state.character;
+  renderAvatar();
+  renderCharacterCollection();
+}
+
+function renderAvatar() {
+  if (!state.character) {
+    avatarStage.innerHTML = "";
+    return;
+  }
+  avatarStage.className = "avatar-stage";
+  const character = getCharacterById(state.character);
+  const characterName = state.language === "en" ? character.enName : character.name;
+  const rarityLabel = t(RARITY_LABELS[character.rarity] || RARITY_LABELS.common);
+  avatarStage.innerHTML = `
+    <figure class="avatar-complete-card rarity-${character.rarity}">
+      <img class="character-image" src="${character.image}" alt="${characterName}" />
+      <figcaption>
+        <strong>${characterName}</strong>
+        <span>${rarityLabel}</span>
+      </figcaption>
+    </figure>
+  `;
+}
+
+function makeCharacterSvg() {
+  const layers = characterLayerAssets[state.character];
+  const characterLabel = state.character === "girl" ? t("小女孩") : t("小男孩");
+  const hasLayeredCharacter = layers.bodyBack && layers.bodyFront;
+  if (!hasLayeredCharacter) {
+    return `<img class="character-image" src="${layers.base}" alt="${characterLabel}" />`;
+  }
+  return `
+    <div class="avatar-composite ${state.character}">
+      <img class="character-layer body-back-layer" src="${layers.bodyBack}" alt="${characterLabel}" />
+      ${makeLayeredAccessoryImages("back")}
+      ${makeLayeredAccessoryImages("clothes")}
+      <img class="character-layer body-front-layer" src="${layers.bodyFront}" alt="" aria-hidden="true" />
+      ${makeLayeredAccessoryImages("front")}
+    </div>
+  `;
+}
+
+function makeLayeredAccessoryImages(layer) {
+  const equippedItems = getEquippedItems();
+  return Object.values(equippedItems)
+    .map((item) => ({ item, asset: getLayeredAccessoryAsset(item) }))
+    .filter(({ item, asset }) => item && asset && getAccessoryLayer(item.slot) === layer)
+    .map(({ item, asset }) => `<img class="avatar-accessory ${item.slot}-accessory" src="${asset}" alt="" aria-hidden="true" />`)
+    .join("");
+}
+
+function getLayeredAccessoryAsset(item) {
+  if (!item || !item.layeredAssets || !state.character) {
+    return "";
+  }
+  return item.layeredAssets[state.character] || "";
+}
+
+function getAccessoryLayer(slot) {
+  if (slot === "top" || slot === "bottom" || slot === "shoes") {
+    return "clothes";
+  }
+  if (slot === "backpack") {
+    return "back";
+  }
+  return "front";
+}
+
+function makeCharacterDefs() {
+  return `
+    <defs>
+      <filter id="softShadow" x="-20%" y="-20%" width="140%" height="150%">
+        <feDropShadow dx="0" dy="12" stdDeviation="8" flood-color="#263238" flood-opacity="0.2"/>
+      </filter>
+      <linearGradient id="skin" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#ffe9c7"/>
+        <stop offset="1" stop-color="#ffbf88"/>
+      </linearGradient>
+      <linearGradient id="boyHair" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#4b5960"/>
+        <stop offset="1" stop-color="#1f292e"/>
+      </linearGradient>
+      <linearGradient id="girlHair" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#9a5b33"/>
+        <stop offset="1" stop-color="#5d321c"/>
+      </linearGradient>
+      <linearGradient id="blueOutfit" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#82c8ff"/>
+        <stop offset="1" stop-color="#4c7bd9"/>
+      </linearGradient>
+      <linearGradient id="mintOutfit" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#78e6c4"/>
+        <stop offset="1" stop-color="#2f8f6f"/>
+      </linearGradient>
+      <linearGradient id="pinkOutfit" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#ffb2d2"/>
+        <stop offset="1" stop-color="#e96f8f"/>
+      </linearGradient>
+      <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fff59b"/>
+        <stop offset="1" stop-color="#f7c948"/>
+      </linearGradient>
+    </defs>
+  `;
+}
+
+function makeBoyCharacterSvg() {
+  return `
+    <svg class="character-svg" viewBox="0 0 360 460" role="img" aria-label="${t("我的角色")}">
+      ${makeCharacterDefs()}
+      <ellipse cx="178" cy="414" rx="94" ry="22" fill="#263238" opacity="0.16"/>
+      <g filter="url(#softShadow)">
+        <path d="M118 238 C92 268 82 312 80 350" fill="none" stroke="#263238" stroke-width="42" stroke-linecap="round"/>
+        <path d="M118 238 C92 268 82 312 80 350" fill="none" stroke="url(#skin)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M242 238 C268 268 282 312 288 350" fill="none" stroke="#263238" stroke-width="42" stroke-linecap="round"/>
+        <path d="M242 238 C268 268 282 312 288 350" fill="none" stroke="url(#skin)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M136 326 H224 L214 378 H146 Z" fill="#5e8ee8" stroke="#263238" stroke-width="9" stroke-linejoin="round"/>
+        <path d="M146 364 V398" stroke="#ffcf9d" stroke-width="34" stroke-linecap="round"/>
+        <path d="M214 364 V398" stroke="#ffcf9d" stroke-width="34" stroke-linecap="round"/>
+        <path d="M116 404 Q146 386 176 402 Q170 424 116 424 Z" fill="#78b9ff" stroke="#263238" stroke-width="8" stroke-linejoin="round"/>
+        <path d="M186 402 Q216 386 246 404 Q244 424 190 424 Z" fill="#78b9ff" stroke="#263238" stroke-width="8" stroke-linejoin="round"/>
+        <path d="M132 402 H166 M202 402 H234" stroke="#fffdf8" stroke-width="6" stroke-linecap="round"/>
+        <path d="M108 218 Q180 190 252 218 L236 332 H124 Z" fill="url(#blueOutfit)" stroke="#263238" stroke-width="9" stroke-linejoin="round"/>
+        <path d="M130 228 Q180 210 230 228" stroke="#d5efff" stroke-width="8" stroke-linecap="round" opacity="0.72"/>
+        <path d="M148 282 Q180 302 212 282" fill="none" stroke="#fffdf8" stroke-width="7" stroke-linecap="round" opacity="0.38"/>
+        <path d="M98 136 C102 58 256 58 262 134 C236 96 152 88 98 136 Z" fill="url(#boyHair)" stroke="#263238" stroke-width="8"/>
+        <path d="M116 108 C150 72 210 70 242 104" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round" opacity="0.2"/>
+        <path d="M106 136 C106 72 254 72 254 136 C254 202 220 232 180 232 C140 232 106 202 106 136 Z" fill="url(#skin)" stroke="#263238" stroke-width="8" stroke-linejoin="round"/>
+        <circle cx="146" cy="150" r="22" fill="#263238"/>
+        <circle cx="214" cy="150" r="22" fill="#263238"/>
+        <circle cx="140" cy="142" r="7" fill="#ffffff"/>
+        <circle cx="208" cy="142" r="7" fill="#ffffff"/>
+        <circle cx="154" cy="178" r="15" fill="#ff9a9a" opacity="0.54"/>
+        <circle cx="206" cy="178" r="15" fill="#ff9a9a" opacity="0.54"/>
+        <path d="M164 188 Q180 206 196 188" fill="none" stroke="#c84d4d" stroke-width="7" stroke-linecap="round"/>
+        <path d="M132 116 Q180 84 228 116" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" opacity="0.2"/>
+      </g>
+    </svg>
+  `;
+}
+
+function makeGirlCharacterSvg() {
+  return `
+    <svg class="character-svg" viewBox="0 0 360 460" role="img" aria-label="${t("我的角色")}">
+      ${makeCharacterDefs()}
+      <ellipse cx="180" cy="414" rx="96" ry="22" fill="#263238" opacity="0.16"/>
+      <g filter="url(#softShadow)">
+        <path d="M86 148 C72 66 126 34 180 34 C234 34 288 66 274 148 C270 226 230 258 180 258 C130 258 90 226 86 148 Z" fill="url(#girlHair)" stroke="#263238" stroke-width="8"/>
+        <circle cx="86" cy="164" r="36" fill="url(#girlHair)" stroke="#263238" stroke-width="7"/>
+        <circle cx="274" cy="164" r="36" fill="url(#girlHair)" stroke="#263238" stroke-width="7"/>
+        <path d="M114 116 C136 62 218 60 250 116 C212 96 156 92 114 116 Z" fill="#b86f41" opacity="0.45"/>
+        <path d="M118 238 C92 268 82 312 80 350" fill="none" stroke="#263238" stroke-width="42" stroke-linecap="round"/>
+        <path d="M118 238 C92 268 82 312 80 350" fill="none" stroke="url(#skin)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M242 238 C268 268 282 312 288 350" fill="none" stroke="#263238" stroke-width="42" stroke-linecap="round"/>
+        <path d="M242 238 C268 268 282 312 288 350" fill="none" stroke="url(#skin)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M134 326 H226 L238 374 H122 Z" fill="#e96f8f" stroke="#263238" stroke-width="9" stroke-linejoin="round"/>
+        <path d="M146 364 V398" stroke="#ffcf9d" stroke-width="34" stroke-linecap="round"/>
+        <path d="M214 364 V398" stroke="#ffcf9d" stroke-width="34" stroke-linecap="round"/>
+        <path d="M114 404 Q146 386 178 402 Q172 424 114 424 Z" fill="#ffabd0" stroke="#263238" stroke-width="8" stroke-linejoin="round"/>
+        <path d="M184 402 Q216 386 248 404 Q246 424 188 424 Z" fill="#ffabd0" stroke="#263238" stroke-width="8" stroke-linejoin="round"/>
+        <path d="M130 402 H166 M200 402 H236" stroke="#fffdf8" stroke-width="6" stroke-linecap="round"/>
+        <path d="M108 218 Q180 190 252 218 L236 332 H124 Z" fill="url(#pinkOutfit)" stroke="#263238" stroke-width="9" stroke-linejoin="round"/>
+        <path d="M132 230 Q180 212 228 230" stroke="#ffd9e5" stroke-width="8" stroke-linecap="round" opacity="0.72"/>
+        <path d="M148 282 Q180 302 212 282" fill="none" stroke="#fffdf8" stroke-width="7" stroke-linecap="round" opacity="0.4"/>
+        <path d="M106 136 C106 72 254 72 254 136 C254 202 220 232 180 232 C140 232 106 202 106 136 Z" fill="url(#skin)" stroke="#263238" stroke-width="8" stroke-linejoin="round"/>
+        <circle cx="146" cy="150" r="22" fill="#263238"/>
+        <circle cx="214" cy="150" r="22" fill="#263238"/>
+        <circle cx="140" cy="142" r="7" fill="#ffffff"/>
+        <circle cx="208" cy="142" r="7" fill="#ffffff"/>
+        <circle cx="154" cy="178" r="15" fill="#ff9a9a" opacity="0.56"/>
+        <circle cx="206" cy="178" r="15" fill="#ff9a9a" opacity="0.56"/>
+        <path d="M164 188 Q180 206 196 188" fill="none" stroke="#c84d4d" stroke-width="7" stroke-linecap="round"/>
+        <path d="M132 116 Q180 84 228 116" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" opacity="0.2"/>
+      </g>
+    </svg>
+  `;
+}
+
+function getEquippedItems() {
+  return Object.fromEntries(
+    Object.entries(gameState.equipped).map(([slot, accessoryId]) => [
+      slot,
+      accessoryCatalog.find((accessory) => accessory.id === accessoryId),
+    ]),
+  );
+}
+
+function makeHeadSvg() {
+  return `
+    <g class="svg-head">
+      <path d="M108 132 C108 72 252 72 252 132 C252 198 220 226 180 226 C140 226 108 198 108 132 Z" fill="url(#skin)" stroke="#263238" stroke-width="8" stroke-linejoin="round"/>
+      <circle cx="146" cy="148" r="19" fill="#263238"/>
+      <circle cx="214" cy="148" r="19" fill="#263238"/>
+      <circle cx="140" cy="141" r="7" fill="#ffffff"/>
+      <circle cx="208" cy="141" r="7" fill="#ffffff"/>
+      <circle cx="154" cy="174" r="13" fill="#ff9a9a" opacity="0.52"/>
+      <circle cx="206" cy="174" r="13" fill="#ff9a9a" opacity="0.52"/>
+      <path d="M164 184 Q180 202 196 184" fill="none" stroke="#c84d4d" stroke-width="6" stroke-linecap="round"/>
+      <path d="M132 112 Q180 78 228 112" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" opacity="0.22"/>
+    </g>
+  `;
+}
+
+function makeBaseHairSvg(isGirl) {
+  if (isGirl) {
+    return `
+      <g class="svg-base-hair">
+        <path d="M88 150 C72 72 124 42 180 42 C236 42 288 72 272 150 C266 210 232 244 180 244 C128 244 94 210 88 150 Z" fill="url(#hairGirl)" stroke="#263238" stroke-width="8"/>
+        <path d="M112 126 C128 72 202 58 242 112 C214 94 164 86 112 126 Z" fill="#b06b3e" opacity="0.5"/>
+      </g>
+    `;
+  }
+  return `
+    <g class="svg-base-hair">
+      <path d="M104 126 C110 62 250 62 256 126 C220 92 154 88 104 126 Z" fill="url(#hairBoy)" stroke="#263238" stroke-width="8"/>
+      <path d="M118 108 C150 74 206 72 236 106" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.18"/>
+    </g>
+  `;
+}
+
+function makeArmsSvg() {
+  return `
+    <g class="svg-arms">
+      <path d="M106 238 C82 260 72 304 66 342" fill="none" stroke="#263238" stroke-width="38" stroke-linecap="round"/>
+      <path d="M254 238 C278 260 288 304 294 342" fill="none" stroke="#263238" stroke-width="38" stroke-linecap="round"/>
+      <path d="M106 238 C82 260 72 304 66 342" fill="none" stroke="url(#skin)" stroke-width="28" stroke-linecap="round"/>
+      <path d="M254 238 C278 260 288 304 294 342" fill="none" stroke="url(#skin)" stroke-width="28" stroke-linecap="round"/>
+    </g>
+  `;
+}
+
+function makeBodySvg(outfit) {
+  if (outfit === "dress") {
+    return `
+      <g class="svg-body">
+        <path d="M124 226 H236 L264 354 H96 Z" fill="url(#coralDress)" stroke="#263238" stroke-width="8" stroke-linejoin="round"/>
+        <path d="M142 244 H218" stroke="#ffd9cc" stroke-width="8" stroke-linecap="round" opacity="0.72"/>
+        <circle cx="180" cy="286" r="9" fill="#fff6df" opacity="0.8"/>
+      </g>
+    `;
+  }
+  const fill = outfit === "hoodie" ? "url(#shirtBlue)" : outfit === "shirt" ? "url(#shirtGreen)" : "url(#shirtGreen)";
+  const pocket = outfit === "hoodie"
+    ? `<path d="M152 292 Q180 318 208 292 V322 H152 Z" fill="#fffdf8" opacity="0.36"/>`
+    : `<path d="M142 256 H218" stroke="#fffdf8" stroke-width="7" stroke-linecap="round" opacity="0.34"/>`;
+  return `
+    <g class="svg-body">
+      <path d="M116 224 Q180 202 244 224 L236 348 H124 Z" fill="${fill}" stroke="#263238" stroke-width="8" stroke-linejoin="round"/>
+      <path d="M180 218 V340" stroke="#ffffff" stroke-width="6" opacity="0.22"/>
+      ${pocket}
+      <circle cx="180" cy="250" r="7" fill="#fff6df" opacity="0.78"/>
+    </g>
+  `;
+}
+
+function makeLegsSvg(shoes) {
+  const shoeFill = shoes === "boots" ? "#e96f55" : shoes === "sneakers" ? "#f7c948" : "#4c7bd9";
+  return `
+    <g class="svg-legs">
+      <path d="M146 342 V398" stroke="#4c7bd9" stroke-width="34" stroke-linecap="round"/>
+      <path d="M214 342 V398" stroke="#4c7bd9" stroke-width="34" stroke-linecap="round"/>
+      <path d="M122 404 Q146 388 172 404 Q168 422 122 422 Z" fill="${shoeFill}" stroke="#263238" stroke-width="7" stroke-linejoin="round"/>
+      <path d="M188 404 Q214 388 238 404 Q238 422 192 422 Z" fill="${shoeFill}" stroke="#263238" stroke-width="7" stroke-linejoin="round"/>
+      <path d="M134 404 H164 M200 404 H228" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+    </g>
+  `;
+}
+
+function makeHatSvg(item) {
+  if (!item) return "";
+  if (item.className === "wizard") {
+    return `
+      <g class="svg-hat">
+        <path d="M138 82 L188 -26 L228 88 Z" fill="#7c5cff" stroke="#263238" stroke-width="8" stroke-linejoin="round"/>
+        <path d="M154 56 L212 78" stroke="#f7c948" stroke-width="10" stroke-linecap="round"/>
+        <circle cx="182" cy="34" r="8" fill="#fff6df"/>
+      </g>
+    `;
+  }
+  if (item.className === "dino") {
+    return `
+      <g class="svg-hat">
+        <path d="M104 102 Q180 42 256 102 V130 H104 Z" fill="#2f8f6f" stroke="#263238" stroke-width="8" stroke-linejoin="round"/>
+        <path d="M134 78 L150 46 L166 78 L182 46 L198 78 L214 46 L230 78" fill="#f7c948" stroke="#263238" stroke-width="5" stroke-linejoin="round"/>
+      </g>
+    `;
+  }
+  return `
+    <g class="svg-hat">
+      <path d="M106 94 Q180 50 254 94 L244 126 H116 Z" fill="#e96f55" stroke="#263238" stroke-width="8" stroke-linejoin="round"/>
+      <path d="M210 112 H272" stroke="#f7c948" stroke-width="16" stroke-linecap="round"/>
+      <path d="M132 84 Q180 66 228 84" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.38"/>
+    </g>
+  `;
+}
+
+function makeHairAccessorySvg(item) {
+  if (!item) return "";
+  if (item.className === "twin") {
+    return `
+      <g class="svg-hair-accessory">
+        <circle cx="82" cy="166" r="36" fill="#f7a35c" stroke="#263238" stroke-width="7"/>
+        <circle cx="278" cy="166" r="36" fill="#f7a35c" stroke="#263238" stroke-width="7"/>
+        <circle cx="82" cy="156" r="12" fill="#ffd9a8" opacity="0.45"/>
+        <circle cx="278" cy="156" r="12" fill="#ffd9a8" opacity="0.45"/>
+      </g>
+    `;
+  }
+  return `
+    <g class="svg-hair-accessory">
+      <path d="M226 88 L236 110 L260 110 L240 124 L248 148 L226 134 L204 148 L212 124 L192 110 L216 110 Z" fill="#f7c948" stroke="#263238" stroke-width="5" stroke-linejoin="round"/>
+    </g>
+  `;
+}
+
+function makeCapeSvg(item) {
+  if (!item || item.className !== "cape") return "";
+  return `
+    <g class="svg-cape">
+      <path d="M114 222 Q180 192 246 222 L282 390 Q180 440 78 390 Z" fill="url(#purpleCape)" stroke="#263238" stroke-width="8" stroke-linejoin="round"/>
+      <path d="M130 238 Q180 216 230 238" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.22"/>
+    </g>
+  `;
+}
+
+function makeBackAccessorySvg(item) {
+  if (!item || item.className !== "backpack") return "";
+  return `
+    <g class="svg-backpack">
+      <path d="M78 244 Q58 278 72 342 Q104 350 126 324 L126 250 Z" fill="#f7c948" stroke="#263238" stroke-width="7"/>
+      <path d="M282 244 Q302 278 288 342 Q256 350 234 324 L234 250 Z" fill="#e96f55" stroke="#263238" stroke-width="7"/>
+      <circle cx="96" cy="278" r="8" fill="#fffdf8" opacity="0.6"/>
+      <circle cx="264" cy="278" r="8" fill="#fffdf8" opacity="0.6"/>
+    </g>
+  `;
+}
+
+function makeHandAccessorySvg(item) {
+  if (!item) return "";
+  if (item.className === "shield") {
+    return `
+      <g class="svg-hand-accessory">
+        <path d="M48 278 Q86 248 124 278 Q116 350 86 372 Q56 350 48 278 Z" fill="#4c7bd9" stroke="#263238" stroke-width="8" stroke-linejoin="round"/>
+        <path d="M72 284 L100 284 M86 268 V342" stroke="#fffdf8" stroke-width="6" stroke-linecap="round" opacity="0.65"/>
+      </g>
+    `;
+  }
+  return `
+    <g class="svg-hand-accessory">
+      <path d="M262 246 L314 350" stroke="#263238" stroke-width="12" stroke-linecap="round"/>
+      <path d="M262 246 L314 350" stroke="#ffd37a" stroke-width="7" stroke-linecap="round"/>
+      <path d="M248 228 L260 254 L288 254 L266 270 L274 298 L250 282 L226 298 L234 270 L212 254 L240 254 Z" fill="#f7c948" stroke="#263238" stroke-width="6" stroke-linejoin="round"/>
+    </g>
+  `;
+}
+
+function renderCharacterCollection() {
+  const ownedCharacters = characterCatalog.filter((character) => gameState.unlockedCharacters.includes(character.id));
+  inventoryGrid.innerHTML = ownedCharacters.map((character) => {
+    const isSelected = state.character === character.id;
+    const label = state.language === "en" ? character.enName : character.name;
+    const rarityLabel = t(RARITY_LABELS[character.rarity] || RARITY_LABELS.common);
+    return `
+      <button
+        class="collection-character-card ${isSelected ? "equipped" : ""} rarity-${character.rarity}"
+        type="button"
+        data-character-card="${character.id}"
+      >
+        <img src="${character.image}" alt="${label}" />
+        <span>${label}</span>
+        <em>${rarityLabel}</em>
+        <small>${isSelected ? t("目前角色") : state.language === "en" ? "Switch" : "切換"}</small>
+      </button>
+    `;
+  }).join("");
+  inventoryGrid.querySelectorAll("[data-character-card]").forEach((button) => {
+    button.addEventListener("click", () => chooseCharacter(button.dataset.characterCard));
+  });
+}
+
+function getAvailableAccessories() {
+  return accessoryCatalog.filter((item) => Boolean(getLayeredAccessoryAsset(item)));
+}
+
+function equipAccessory(accessoryId) {
+  if (!gameState.inventory.includes(accessoryId)) {
+    return;
+  }
+  const item = accessoryCatalog.find((accessory) => accessory.id === accessoryId);
+  if (!item) {
+    return;
+  }
+  if (gameState.equipped[item.slot] === item.id) {
+    gameState.equipped[item.slot] = null;
+  } else {
+    gameState.equipped[item.slot] = item.id;
+  }
+  saveCharacterState();
+  renderCharacterPanel();
+  if (!getLayeredAccessoryAsset(item)) {
+    chestMessage.textContent = t("已記錄裝備，正式 PNG 素材製作中。");
+  }
+}
+
+function openChest() {
+  if (gameState.gold < CHEST_COST || !state.character) {
+    chestMessage.textContent = t("需要 50 金幣才能抽寶箱。");
+    return;
+  }
+  pendingChestCost = CHEST_COST;
+  chestMessage.textContent = state.language === "en" ? "Chest ready. Tap to open!" : "寶箱準備好了，點擊開箱！";
+  showRewardChest();
+}
+
+function rollChestReward() {
+  const rarity = getRandomRarity();
+  const rarityPool = characterCatalog.filter((character) => character.rarity === rarity);
+  const pool = rarityPool.length > 0 ? rarityPool : characterCatalog;
+  const character = pool[randomInt(0, pool.length - 1)];
+  const isDuplicate = gameState.unlockedCharacters.includes(character.id);
+
+  if (isDuplicate) {
+    gameState.gold += 3;
+  } else {
+    gameState.unlockedCharacters.push(character.id);
+    state.character = character.id;
+  }
+
+  return {
+    item: character,
+    character,
+    rarity: character.rarity || rarity,
+    isDuplicate,
+    goldBonus: isDuplicate ? 3 : 0,
+  };
+}
+
+function formatChestRewardText(reward) {
+  if (!reward.item) {
+    return state.language === "en" ? "Duplicate reward converted to +3 coins." : "重複獎勵轉換為金幣 +3。";
+  }
+
+  const itemName = state.language === "en" ? reward.item.enName : reward.item.name;
+  const rarityLabel = t(RARITY_LABELS[reward.rarity] || RARITY_LABELS.common);
+  if (reward.isDuplicate) {
+    return state.language === "en"
+      ? `Duplicate ${itemName} (${rarityLabel}) converted to +${reward.goldBonus} coins.`
+      : `重複的 ${itemName}（${rarityLabel}）轉換為金幣 +${reward.goldBonus}。`;
+  }
+
+  return state.language === "en"
+    ? `New character: ${itemName} (${rarityLabel})`
+    : `抽到新角色 ${itemName}（${rarityLabel}）！`;
+}
+
+function showRewardChest() {
+  if (!state.character || !rewardChestOverlay) {
+    return;
+  }
+
+  rewardChestOverlay.classList.remove("hidden");
+  rewardChestButton.disabled = false;
+  rewardChestButton.classList.remove("opened", "opening");
+  rewardChestOverlay.classList.remove("is-opening", "is-legendary");
+  rewardChestHint.textContent = state.language === "en" ? "Tap the chest to open" : "點擊寶箱開啟";
+  rewardChestResult.className = "reward-chest-result hidden";
+  rewardChestResult.innerHTML = "";
+  rewardChestCloseButton.classList.add("hidden");
+}
+
+function hideRewardChest() {
+  if (!rewardChestOverlay) {
+    return;
+  }
+  rewardChestOverlay.classList.add("hidden");
+  rewardChestOverlay.classList.remove("is-opening", "is-legendary");
+}
+
+function prepareResultChest(questionCount) {
+  pendingRoundChest = Boolean(state.character && questionCount > 0);
+  claimChestButton.classList.toggle("hidden", !pendingRoundChest);
+  claimChestButton.disabled = false;
+  claimChestButton.textContent = t("領取寶箱");
+}
+
+function claimResultChest() {
+  if (!pendingRoundChest) {
+    return;
+  }
+  pendingRoundChest = false;
+  pendingChestCost = 0;
+  claimChestButton.disabled = true;
+  claimChestButton.classList.add("hidden");
+  showRewardChest();
+}
+
+function openRewardChest() {
+  if (!state.character || rewardChestButton.disabled) {
+    return;
+  }
+  if (pendingChestCost > 0) {
+    if (gameState.gold < pendingChestCost) {
+      rewardChestHint.textContent = t("需要 50 金幣才能抽寶箱。");
+      return;
+    }
+    gameState.gold -= pendingChestCost;
+    pendingChestCost = 0;
+    saveCharacterState();
+    renderCharacterPanel();
+    updateTopCoins();
+  }
+
+  rewardChestButton.disabled = true;
+  rewardChestButton.classList.add("opening");
+  rewardChestOverlay.classList.add("is-opening");
+  rewardChestHint.textContent = t("寶箱打開中...");
+  playChestSound("opening");
+
+  window.setTimeout(() => {
+    const reward = rollChestReward();
+    saveCharacterState();
+    renderCharacterPanel();
+    updateTopCoins();
+    rewardChestButton.classList.remove("opening");
+    rewardChestButton.classList.add("opened");
+    rewardChestOverlay.classList.remove("is-opening");
+    rewardChestOverlay.classList.toggle("is-legendary", reward.rarity === "legendary");
+    renderRewardChestResult(reward);
+    playChestSound(reward.rarity);
+  }, 500);
+}
+
+function renderRewardChestResult(reward) {
+  const rarityLabel = t(RARITY_LABELS[reward.rarity] || RARITY_LABELS.common);
+  const itemName = reward.item
+    ? (state.language === "en" ? reward.item.enName : reward.item.name)
+    : (state.language === "en" ? "Coins" : "金幣");
+  const duplicateText = reward.isDuplicate
+    ? (state.language === "en" ? `Already owned. +${reward.goldBonus} coins!` : `已擁有，轉換金幣 +${reward.goldBonus}！`)
+    : (state.language === "en" ? "Added to inventory!" : "已加入裝備收藏！");
+
+  rewardChestHint.textContent = state.language === "en" ? "Reward earned" : "獲得獎勵";
+  rewardChestResult.className = `reward-chest-result rarity-${reward.rarity}`;
+  rewardChestResult.innerHTML = `
+    <span>${rarityLabel}</span>
+    ${reward.character ? `<img class="reward-character-image" src="${reward.character.image}" alt="${itemName}" />` : ""}
+    <strong>${itemName}</strong>
+    <em>${duplicateText}</em>
+  `;
+  window.setTimeout(() => {
+    rewardChestCloseButton.classList.remove("hidden");
+  }, reward.rarity === "legendary" ? 900 : 180);
+}
+
+function getRandomRarity() {
+  const rand = Math.random();
+  if (rand < 0.70) return "common";
+  if (rand < 0.95) return "rare";
+  if (rand < 0.98) return "legendary";
+  return "common";
+}
+
+function gmAddCoins() {
+  gameState.gold += 10;
+  chestMessage.textContent = state.language === "en" ? "GM: +10G added." : "GM：已增加 10G。";
+  saveCharacterState();
+  renderCharacterPanel();
+}
+
+function gmUnlockAll() {
+  gameState.unlockedCharacters = characterCatalog.map((character) => character.id);
+  chestMessage.textContent = state.language === "en" ? "GM: all characters unlocked." : "GM：已解鎖全部角色。";
+  saveCharacterState();
+  renderCharacterPanel();
+}
+
+function gmOpenChest() {
+  if (!state.character) {
+    state.character = "girl";
+  }
+  gameState.gold = Math.max(gameState.gold, CHEST_COST);
+  openChest();
+}
+
+function gmResetCharacter() {
+  state.character = null;
+  gameState.gold = 0;
+  gameState.gems = 0;
+  gameState.inventory = [];
+  gameState.unlockedCharacters = ["boy", "girl"];
+  gameState.equipped = { hat: null, hair: null, top: null, bottom: null, shoes: null, hand: null };
+  gameState.streak = 0;
+  gameState.combo = 0;
+  gameState.xp = 0;
+  gameState.level = 1;
+  chestMessage.textContent = t("完成 10 題可獲得 1G。");
+  saveCharacterState();
+  renderCharacterPanel();
+}
+
+function awardPracticeRewards(questionCount, correctCount) {
+  if (!state.character || questionCount <= 0) {
+    return;
+  }
+  const earnedGold = Math.max(1, correctCount * 2 + Math.floor(questionCount / 5));
+  const earnedXp = Math.max(5, correctCount * 5 + questionCount * 2);
+  const wasPerfect = correctCount === questionCount;
+  gameState.gold += earnedGold;
+  gameState.xp += earnedXp;
+  gameState.level = getLevelFromXp(gameState.xp);
+  gameState.streak = wasPerfect ? gameState.streak + 1 : 0;
+  chestMessage.textContent = state.language === "en"
+    ? `Reward: +${earnedGold} coins, +${earnedXp} XP`
+    : `獲得獎勵：金幣 +${earnedGold}，XP +${earnedXp}`;
+  saveCharacterState();
+  renderCharacterPanel();
+}
+
+function awardCorrectAnswerCoin(sourceElement) {
+  if (!state.character) {
+    return;
+  }
+
+  gameState.gold += 1;
+  saveCharacterState();
+  updateTopCoins();
+  showCoinFly(sourceElement);
+}
+
+function registerCorrectAnswer(sourceElement) {
+  state.currentCombo += 1;
+  gameState.combo = Math.max(gameState.combo, state.currentCombo);
+  awardCorrectAnswerCoin(sourceElement);
+  showComboPop(sourceElement);
+}
+
+function resetCurrentCombo() {
+  state.currentCombo = 0;
+}
+
+function getComboMessage(combo) {
+  if (combo >= 10) return "Amazing!";
+  if (combo >= 5) return "Great!";
+  if (combo >= 3) return "Nice!";
+  return "";
+}
+
+function showComboPop(sourceElement) {
+  const message = getComboMessage(state.currentCombo);
+  if (!message || !sourceElement) {
+    return;
+  }
+
+  const anchor = getComboAnchor(sourceElement);
+  const rect = anchor.getBoundingClientRect();
+  const combo = document.createElement("div");
+  combo.className = `combo-pop combo-${state.currentCombo >= 10 ? "amazing" : state.currentCombo >= 5 ? "great" : "nice"}`;
+  combo.innerHTML = `
+    <strong>${state.currentCombo} ${t("連續答對")}</strong>
+    <span>${message}</span>
+  `;
+  combo.style.left = `${rect.left + rect.width / 2}px`;
+  combo.style.top = `${Math.max(78, rect.top - 12)}px`;
+  document.body.appendChild(combo);
+  window.setTimeout(() => combo.remove(), 1400);
+}
+
+function getComboAnchor(sourceElement) {
+  if (!quizView.classList.contains("hidden")) return questionText;
+  if (!monsterView.classList.contains("hidden")) return monsterQuestion;
+  if (!puzzleView.classList.contains("hidden")) return puzzleQuestion;
+  return sourceElement;
+}
+
+function showCoinFly(sourceElement) {
+  const coinTarget = coinText;
+  if (!sourceElement || !coinTarget) {
+    return;
+  }
+
+  const sourceRect = sourceElement.getBoundingClientRect();
+  const targetRect = coinTarget.getBoundingClientRect();
+  const coin = document.createElement("div");
+  coin.className = "coin-fly";
+  coin.innerHTML = `<span class="coin-symbol" aria-hidden="true"></span><strong>+1</strong>`;
+  const startX = sourceRect.left + sourceRect.width / 2;
+  const startY = sourceRect.top + sourceRect.height / 2;
+  const endX = targetRect.left + targetRect.width / 2;
+  const endY = targetRect.top + targetRect.height / 2;
+  coin.style.left = `${startX}px`;
+  coin.style.top = `${startY}px`;
+  coin.style.setProperty("--coin-dx", `${endX - startX}px`);
+  coin.style.setProperty("--coin-dy", `${endY - startY}px`);
+  document.body.appendChild(coin);
+  window.setTimeout(() => coin.remove(), 900);
+}
+
 function startQuiz() {
   clearNextQuestionTimer();
   clearQuizTimer();
+  hideRewardChest();
   state.practiceMode = document.querySelector("input[name='practiceMode']:checked").value;
   state.operation = getSelectedOperation(state.practiceMode);
   state.digits = Number(document.querySelector("input[name='digits']:checked").value);
@@ -382,9 +1490,12 @@ function startQuiz() {
   state.questionQueue = null;
   state.reviewRecords = [];
   state.awaitingNext = false;
+  resetCurrentCombo();
+  resetCurrentCombo();
 
   setupView.classList.add("hidden");
   settingsView.classList.add("hidden");
+  characterView.classList.add("hidden");
   monsterView.classList.add("hidden");
   puzzleView.classList.add("hidden");
   reciteView.classList.add("hidden");
@@ -392,7 +1503,7 @@ function startQuiz() {
   quizView.classList.remove("hidden");
   feedbackText.textContent = "";
   feedbackText.className = "feedback";
-  updateStars();
+  updateTopCoins();
   updateTimerDisplay();
   if (state.timedMode) {
     startQuizTimer();
@@ -443,20 +1554,24 @@ function getTimeLimitSeconds() {
 function showSetup() {
   clearNextQuestionTimer();
   clearQuizTimer();
+  hideRewardChest();
   state.locked = false;
   state.awaitingNext = false;
+  resetCurrentCombo();
   state.questionQueue = null;
   submitAnswerButton.disabled = false;
   submitAnswerButton.textContent = t("確認");
   resultView.classList.add("hidden");
+  claimChestButton.classList.add("hidden");
   settingsView.classList.add("hidden");
+  characterView.classList.add("hidden");
   monsterView.classList.add("hidden");
   puzzleView.classList.add("hidden");
   quizView.classList.add("hidden");
   reciteView.classList.add("hidden");
   setupView.classList.remove("hidden");
   puzzleResultButton.classList.add("hidden");
-  stars.textContent = "☆☆☆☆☆";
+  updateTopCoins();
   timerText.classList.add("hidden");
   setWritingDisabled(false);
   clearWriting();
@@ -467,13 +1582,31 @@ function showSetup() {
 function showSettings() {
   clearNextQuestionTimer();
   clearQuizTimer();
+  hideRewardChest();
   setupView.classList.add("hidden");
+  characterView.classList.add("hidden");
   quizView.classList.add("hidden");
   monsterView.classList.add("hidden");
   puzzleView.classList.add("hidden");
   reciteView.classList.add("hidden");
   resultView.classList.add("hidden");
   settingsView.classList.remove("hidden");
+}
+
+function showCharacter() {
+  clearNextQuestionTimer();
+  clearQuizTimer();
+  hideRewardChest();
+  setupView.classList.add("hidden");
+  settingsView.classList.add("hidden");
+  characterView.classList.add("hidden");
+  quizView.classList.add("hidden");
+  monsterView.classList.add("hidden");
+  puzzleView.classList.add("hidden");
+  reciteView.classList.add("hidden");
+  resultView.classList.add("hidden");
+  characterView.classList.remove("hidden");
+  renderCharacterPanel();
 }
 
 function stopQuiz() {
@@ -487,15 +1620,18 @@ function startMonsterGame() {
   state.monsterScore = 0;
   state.score = 0;
   state.monsterLocked = false;
+  state.monsterTypeIndex = getNextMonsterTypeIndex();
   state.reviewRecords = [];
+  resetCurrentCombo();
   setupView.classList.add("hidden");
   settingsView.classList.add("hidden");
+  characterView.classList.add("hidden");
   quizView.classList.add("hidden");
   puzzleView.classList.add("hidden");
   reciteView.classList.add("hidden");
   resultView.classList.add("hidden");
   monsterView.classList.remove("hidden");
-  stars.textContent = "☆☆☆☆☆";
+  updateTopCoins();
   nextMonsterQuestion();
 }
 
@@ -513,9 +1649,79 @@ function nextMonsterQuestion() {
   monsterQuestion.textContent = state.monsterQuestion.text;
   monsterFeedback.textContent = "";
   monsterFeedback.className = "feedback hidden";
-  monsterEnemy.classList.remove("hit", "miss");
+  renderMonsterEnemy();
   renderMonsterHealth();
   renderMonsterChoices();
+}
+
+function renderMonsterEnemy() {
+  const monster = monsterTypes[state.monsterTypeIndex % monsterTypes.length];
+  monsterEnemy.className = `monster monster-${monster.id}`;
+  monsterEnemy.setAttribute("aria-label", monster.name);
+  monsterEnemy.innerHTML = `
+    ${makeMonsterSvg(monster.id)}
+    <span class="monster-name">${monster.name}</span>
+  `;
+}
+
+function getNextMonsterTypeIndex() {
+  const key = "mathPracticeMonsterIndex";
+  const current = Number(localStorage.getItem(key)) || 0;
+  localStorage.setItem(key, String((current + 1) % monsterTypes.length));
+  return current % monsterTypes.length;
+}
+
+function makeMonsterSvg(monsterId) {
+  if (monsterId === "werewolf") {
+    return `
+      <svg class="monster-art" viewBox="0 0 220 220" aria-hidden="true">
+        <ellipse class="monster-shadow" cx="110" cy="196" rx="64" ry="14" />
+        <path d="M52 84 L78 28 L102 74 Z" fill="#8b5a33"/>
+        <path d="M168 84 L142 28 L118 74 Z" fill="#8b5a33"/>
+        <path d="M48 112 C48 56 84 42 110 42 C146 42 172 65 172 112 C172 160 144 188 110 188 C76 188 48 160 48 112 Z" fill="#a87343"/>
+        <path d="M75 65 C92 38 128 38 145 65 C132 58 88 58 75 65 Z" fill="#5f3922"/>
+        <circle cx="82" cy="103" r="13" fill="#fff"/>
+        <circle cx="138" cy="103" r="13" fill="#fff"/>
+        <circle cx="84" cy="105" r="7" fill="#263238"/>
+        <circle cx="136" cy="105" r="7" fill="#263238"/>
+        <path d="M92 136 Q110 154 128 136" fill="none" stroke="#263238" stroke-width="7" stroke-linecap="round"/>
+        <path d="M98 135 L104 151 L112 135 L120 151 L126 135" fill="#fff"/>
+        <ellipse cx="110" cy="121" rx="18" ry="13" fill="#5f3922"/>
+      </svg>
+    `;
+  }
+  if (monsterId === "zombie") {
+    return `
+      <svg class="monster-art" viewBox="0 0 220 220" aria-hidden="true">
+        <ellipse class="monster-shadow" cx="110" cy="196" rx="62" ry="14" />
+        <path d="M52 116 C52 62 82 42 112 42 C150 42 174 68 174 116 C174 160 146 186 110 186 C76 186 52 158 52 116 Z" fill="#92c77d"/>
+        <path d="M70 70 C92 42 130 42 152 70 C128 64 94 64 70 70 Z" fill="#486b42"/>
+        <path d="M78 84 L98 66 L118 84 L140 64 L154 88" fill="none" stroke="#486b42" stroke-width="10" stroke-linecap="round"/>
+        <circle cx="82" cy="106" r="13" fill="#fff"/>
+        <circle cx="140" cy="106" r="13" fill="#fff"/>
+        <circle cx="86" cy="109" r="5" fill="#263238"/>
+        <circle cx="136" cy="103" r="5" fill="#263238"/>
+        <path d="M88 145 Q110 134 132 145" fill="none" stroke="#263238" stroke-width="7" stroke-linecap="round"/>
+        <path d="M60 128 L40 140 M162 128 L184 140" stroke="#92c77d" stroke-width="18" stroke-linecap="round"/>
+        <path d="M116 75 L142 82" stroke="#263238" stroke-width="6" stroke-linecap="round"/>
+      </svg>
+    `;
+  }
+  return `
+    <svg class="monster-art" viewBox="0 0 220 220" aria-hidden="true">
+      <ellipse class="monster-shadow" cx="110" cy="196" rx="62" ry="14" />
+      <path d="M42 164 C52 92 64 48 110 48 C156 48 168 92 178 164 C150 188 70 188 42 164 Z" fill="#4d315f"/>
+      <path d="M62 76 C75 48 94 36 110 36 C126 36 145 48 158 76 C142 66 78 66 62 76 Z" fill="#263238"/>
+      <circle cx="82" cy="105" r="14" fill="#fff"/>
+      <circle cx="138" cy="105" r="14" fill="#fff"/>
+      <circle cx="84" cy="107" r="7" fill="#263238"/>
+      <circle cx="136" cy="107" r="7" fill="#263238"/>
+      <path d="M88 138 Q110 154 132 138" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+      <path d="M98 140 L104 160 L112 140 L120 160 L126 140" fill="#fff"/>
+      <path d="M56 166 C36 150 28 124 38 98 C52 118 62 140 56 166 Z" fill="#2f203d"/>
+      <path d="M164 166 C184 150 192 124 182 98 C168 118 158 140 164 166 Z" fill="#2f203d"/>
+    </svg>
+  `;
 }
 
 function makeMonsterQuestion() {
@@ -619,19 +1825,41 @@ function checkMonsterAnswer(choice) {
     state.score = state.monsterScore;
     monsterFeedback.textContent = t("打中了！");
     monsterFeedback.className = "feedback feedback-card correct";
-    monsterEnemy.classList.add("hit");
+    playMonsterAttackAnimation();
+    registerCorrectAnswer(monsterEnemy);
     playFeedbackSound(true);
   } else {
+    resetCurrentCombo();
     monsterFeedback.textContent = formatWrongAnswer(state.monsterQuestion.answer);
     monsterFeedback.className = "feedback feedback-card wrong";
-    monsterEnemy.classList.add("miss");
+    playMonsterMissAnimation();
     playFeedbackSound(false);
   }
 
   monsterScoreText.textContent = formatHits(state.monsterScore);
-  updateStars();
+  updateTopCoins();
   renderMonsterHealth();
   window.setTimeout(nextMonsterQuestion, isCorrect ? 800 : 1200);
+}
+
+function playMonsterAttackAnimation() {
+  monsterEnemy.classList.remove("miss");
+  monsterEnemy.classList.add("hit");
+  const slash = document.createElement("span");
+  slash.className = "monster-attack-effect";
+  slash.textContent = "✦";
+  monsterEnemy.appendChild(slash);
+  window.setTimeout(() => slash.remove(), 520);
+}
+
+function playMonsterMissAnimation() {
+  monsterEnemy.classList.remove("hit");
+  monsterEnemy.classList.add("miss");
+  const miss = document.createElement("span");
+  miss.className = "monster-miss-effect";
+  miss.textContent = "MISS";
+  monsterEnemy.appendChild(miss);
+  window.setTimeout(() => miss.remove(), 680);
 }
 
 function renderMonsterHealth() {
@@ -651,6 +1879,8 @@ function showMonsterResult() {
     resultMessage.textContent = t("再練一輪，下一次打得更準。");
   }
   saveDailyPractice(TOTAL_QUESTIONS, state.monsterScore);
+  awardPracticeRewards(TOTAL_QUESTIONS, state.monsterScore);
+  prepareResultChest(TOTAL_QUESTIONS);
   renderDailySummary();
   renderReviewRecords();
 }
@@ -666,14 +1896,16 @@ function startPuzzleGame() {
   state.puzzleRevealOrder = shuffle(Array.from({ length: PUZZLE_QUESTIONS }, (_, index) => index));
   state.puzzleUnlockedPieces = [];
   state.reviewRecords = [];
+  resetCurrentCombo();
   setupView.classList.add("hidden");
   settingsView.classList.add("hidden");
+  characterView.classList.add("hidden");
   quizView.classList.add("hidden");
   monsterView.classList.add("hidden");
   reciteView.classList.add("hidden");
   resultView.classList.add("hidden");
   puzzleView.classList.remove("hidden");
-  stars.textContent = "☆☆☆☆☆";
+  updateTopCoins();
   puzzleResultButton.classList.add("hidden");
   renderPuzzleBoard();
   nextPuzzleQuestion();
@@ -841,15 +2073,17 @@ function checkPuzzleAnswer(choice) {
     state.score = state.puzzleScore;
     puzzleFeedback.textContent = t("解鎖一片！");
     puzzleFeedback.className = "feedback feedback-card correct";
+    registerCorrectAnswer(puzzleBoard);
     playFeedbackSound(true);
   } else {
+    resetCurrentCombo();
     puzzleFeedback.textContent = formatWrongAnswer(state.puzzleQuestion.answer);
     puzzleFeedback.className = "feedback feedback-card wrong";
     playFeedbackSound(false);
   }
 
   puzzleScoreText.textContent = formatPuzzleScore(state.puzzleScore);
-  updateStars();
+  updateTopCoins();
   renderPuzzleBoard();
   if (state.puzzleScore === PUZZLE_QUESTIONS) {
     finishPuzzleUnlock();
@@ -886,6 +2120,8 @@ function showPuzzleResult() {
     resultMessage.textContent = t("先解開幾片也很棒，下一輪繼續。");
   }
   saveDailyPractice(PUZZLE_QUESTIONS, state.puzzleScore);
+  awardPracticeRewards(PUZZLE_QUESTIONS, state.puzzleScore);
+  prepareResultChest(PUZZLE_QUESTIONS);
   renderDailySummary();
   renderReviewRecords();
 }
@@ -908,8 +2144,10 @@ function startWrongOnlyQuiz() {
   state.score = 0;
   state.reviewRecords = [];
   state.awaitingNext = false;
+  resetCurrentCombo();
   setupView.classList.add("hidden");
   settingsView.classList.add("hidden");
+  characterView.classList.add("hidden");
   monsterView.classList.add("hidden");
   puzzleView.classList.add("hidden");
   reciteView.classList.add("hidden");
@@ -918,7 +2156,7 @@ function startWrongOnlyQuiz() {
   feedbackText.textContent = "";
   feedbackText.className = "feedback";
   updateTimerDisplay();
-  updateStars();
+  updateTopCoins();
   nextQuestion();
 }
 
@@ -926,12 +2164,13 @@ function showRecitation(tableNumber) {
   state.multiplyMode = `recite-${tableNumber}`;
   setupView.classList.add("hidden");
   settingsView.classList.add("hidden");
+  characterView.classList.add("hidden");
   monsterView.classList.add("hidden");
   puzzleView.classList.add("hidden");
   quizView.classList.add("hidden");
   resultView.classList.add("hidden");
   reciteView.classList.remove("hidden");
-  stars.textContent = "☆☆☆☆☆";
+  updateTopCoins();
   updateReciteToggleButton();
   renderRecitationTable(tableNumber);
 }
@@ -1037,8 +2276,10 @@ function checkAnswer(event) {
     feedbackText.textContent = t("答對了！");
     feedbackText.className = "feedback feedback-card correct";
     submitAnswerButton.disabled = true;
+    registerCorrectAnswer(answerForm);
     playFeedbackSound(true);
   } else {
+    resetCurrentCombo();
     feedbackText.textContent = formatWrongAnswer(getAnswerDisplay(state.question));
     feedbackText.className = "feedback feedback-card wrong";
     state.awaitingNext = true;
@@ -1046,7 +2287,7 @@ function checkAnswer(event) {
     playFeedbackSound(false);
   }
 
-  updateStars();
+  updateTopCoins();
   scoreText.textContent = formatScore(state.score);
   progressFill.style.width = state.timedMode
     ? `${((getTimeLimitSeconds() - state.secondsLeft) / getTimeLimitSeconds()) * 100}%`
@@ -1079,16 +2320,18 @@ function showResult() {
   }
 
   saveDailyPractice(resultTotal, state.score);
+  awardPracticeRewards(resultTotal, state.score);
+  prepareResultChest(resultTotal);
   renderDailySummary();
   renderReviewRecords();
 }
 
-function updateStars() {
-  const starTotal = state.practiceMode === "miniGames"
-    ? state.miniGameMode === "puzzle" ? PUZZLE_QUESTIONS : TOTAL_QUESTIONS
-    : state.timedMode ? Math.max(state.reviewRecords.length, 1) : state.totalQuestions;
-  const filled = Math.round((state.score / starTotal) * 5);
-  stars.textContent = "★".repeat(filled) + "☆".repeat(5 - filled);
+function updateTopCoins() {
+  coinText.innerHTML = formatCoinDisplay(gameState.gold);
+}
+
+function formatCoinDisplay(coins) {
+  return `<span class="coin-symbol" aria-hidden="true"></span><span>${coins}</span>`;
 }
 
 function renderReviewRecords() {
@@ -1410,6 +2653,36 @@ function playFeedbackSound(isCorrect) {
     gain.connect(audioContext.destination);
     oscillator.start(now + index * 0.08);
     oscillator.stop(now + index * 0.08 + 0.14);
+  });
+}
+
+function playChestSound(stage) {
+  if (!state.soundEnabled) {
+    return;
+  }
+
+  audioContext ??= new (window.AudioContext || window.webkitAudioContext)();
+  const now = audioContext.currentTime;
+  const noteSets = {
+    opening: [196, 246.94, 293.66],
+    common: [392, 523.25],
+    rare: [523.25, 659.25, 783.99],
+    legendary: [523.25, 659.25, 783.99, 1046.5, 1318.51],
+  };
+  const notes = noteSets[stage] || noteSets.common;
+  notes.forEach((frequency, index) => {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const start = now + index * (stage === "legendary" ? 0.07 : 0.08);
+    oscillator.type = stage === "legendary" ? "triangle" : "sine";
+    oscillator.frequency.setValueAtTime(frequency, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(stage === "legendary" ? 0.16 : 0.11, start + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + (stage === "legendary" ? 0.22 : 0.14));
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start(start);
+    oscillator.stop(start + (stage === "legendary" ? 0.24 : 0.16));
   });
 }
 
