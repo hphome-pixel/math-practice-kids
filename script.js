@@ -1000,7 +1000,7 @@ function getCharacterImageMarkup(character, altText, className = "character-imag
         aria-label="${altText}"
         muted
         playsinline
-        preload="metadata"
+        preload="auto"
       ></video>
     `;
   }
@@ -1029,6 +1029,7 @@ function resetCharacterVideo(video) {
     reset();
   } else {
     video.addEventListener("loadedmetadata", reset, { once: true });
+    video.load();
   }
 }
 
@@ -1039,6 +1040,7 @@ function prepareCharacterVideos(container = document) {
     }
     video.dataset.videoPrepared = "true";
     video.addEventListener("ended", () => resetCharacterVideo(video));
+    video.addEventListener("pause", () => video.classList.remove("is-playing"));
     resetCharacterVideo(video);
   });
 }
@@ -1186,6 +1188,16 @@ function renderAvatar() {
   avatarStage.querySelector("[data-avatar-card]")?.addEventListener("click", playActiveCharacterAnimation);
 }
 
+function pulseCharacterCard(targetCard = avatarStage.querySelector("[data-avatar-card]")) {
+  const target = targetCard || avatarStage.querySelector("[data-avatar-card]") || lobbyCharacterCard;
+  if (!target) {
+    return;
+  }
+  target.classList.remove("character-tap-burst");
+  void target.offsetWidth;
+  target.classList.add("character-tap-burst");
+}
+
 function playActiveCharacterAnimation(targetCard = avatarStage.querySelector("[data-avatar-card]")) {
   const target = targetCard || avatarStage.querySelector("[data-avatar-card]") || lobbyCharacterCard;
   if (!target) {
@@ -1194,7 +1206,6 @@ function playActiveCharacterAnimation(targetCard = avatarStage.querySelector("[d
   const character = getActiveCharacter();
   const video = target.querySelector("video");
   if (video) {
-    playEquipSound(character.rarity);
     video.classList.add("is-playing");
     video.muted = !state.soundEnabled;
     video.volume = state.soundEnabled ? 0.85 : 0;
@@ -1202,16 +1213,12 @@ function playActiveCharacterAnimation(targetCard = avatarStage.querySelector("[d
     video.play().catch(() => {
       video.muted = true;
       resetCharacterVideo(video);
-      target.classList.remove("character-tap-burst");
-      void target.offsetWidth;
-      target.classList.add("character-tap-burst");
+      pulseCharacterCard(target);
     });
     return;
   }
   playEquipSound(character.rarity);
-  target.classList.remove("character-tap-burst");
-  void target.offsetWidth;
-  target.classList.add("character-tap-burst");
+  pulseCharacterCard(target);
 }
 
 function scrollToAvatarPreview() {
@@ -1220,7 +1227,10 @@ function scrollToAvatarPreview() {
   }
   window.setTimeout(() => {
     avatarStage.scrollIntoView({ behavior: "smooth", block: "center" });
-    window.setTimeout(() => playActiveCharacterAnimation(), 360);
+    window.setTimeout(() => {
+      prepareCharacterVideos(avatarStage);
+      pulseCharacterCard();
+    }, 360);
   }, 80);
 }
 
