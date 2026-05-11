@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>數學練習</title>
+    <title>金幣數學島</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -11,17 +11,60 @@
       <section class="practice-panel" aria-labelledby="app-title">
         <div class="topbar">
           <div>
-            <p class="eyebrow">Math Practice</p>
-            <h1 id="app-title">數學練習</h1>
+            <p class="eyebrow">Math Quest</p>
+            <h1 id="app-title">金幣數學島</h1>
           </div>
           <div class="top-actions">
-            <button class="secondary-button compact-button" id="characterButton" type="button">角色</button>
             <button class="secondary-button compact-button" id="settingsButton" type="button">設定</button>
             <div class="top-coin" id="coinText" aria-label="目前金幣">🪙 0</div>
           </div>
         </div>
 
         <section class="setup-view" id="setupView">
+          <section class="lobby-hero" id="lobbyHero">
+            <div class="lobby-stage">
+              <div class="lobby-character-card rarity-common" id="lobbyCharacterCard">
+                <div class="lobby-character-media" id="lobbyCharacterMedia">
+                  <img id="lobbyCharacterImage" src="assets/characters/boy_basic_display.png" alt="目前角色" />
+                </div>
+                <div class="lobby-character-meta">
+                  <strong id="lobbyCharacterName">元氣男孩</strong>
+                  <span id="lobbyCharacterRarity">普通</span>
+                </div>
+              </div>
+            </div>
+            <div class="lobby-info">
+              <p class="lobby-kicker">我的夥伴</p>
+              <h2>今天一起賺金幣</h2>
+              <div class="lobby-stats">
+                <div>
+                  <span>等級</span>
+                  <strong id="lobbyLevelText">Lv.1</strong>
+                </div>
+                <div>
+                  <span>XP</span>
+                  <strong id="lobbyXpText">0 / 100</strong>
+                </div>
+                <div>
+                  <span>連勝</span>
+                  <strong id="lobbyStreakText">0</strong>
+                </div>
+              </div>
+              <div class="lobby-actions">
+                <button class="primary-button" id="lobbyStartButton" type="button">開始冒險</button>
+                <button class="secondary-button" id="lobbyChestButton" type="button">開寶箱 10 金幣</button>
+                <button class="secondary-button" id="lobbyCharacterButton" type="button">角色收藏</button>
+              </div>
+            </div>
+          </section>
+
+          <details class="practice-settings-panel" id="practiceSettingsPanel">
+            <summary>
+              <span class="settings-summary-title">⚙ 練習設定</span>
+              <strong id="practiceSummaryText">加法練習・個位</strong>
+              <em>點我調整題目</em>
+            </summary>
+
           <div class="field-group">
             <h2>選擇練習</h2>
             <div class="mode-grid" role="radiogroup" aria-label="練習模式">
@@ -189,7 +232,10 @@
             <div id="dailySummary">今天還沒完成練習</div>
           </div>
 
-          <button class="primary-button" id="startButton" type="button">開始 10 題</button>
+          </details>
+
+          <button class="primary-button setup-start-button" id="startButton" type="button">開始 10 題</button>
+          <button class="primary-button setup-start-button setup-start-button-bottom" id="bottomStartButton" type="button">開始 10 題</button>
         </section>
 
         <section class="settings-view hidden" id="settingsView">
@@ -211,7 +257,7 @@
           </label>
           <div class="version-card">
             <span>版本</span>
-            <strong>v2.4.1</strong>
+              <strong>v2.8.0</strong>
           </div>
         </section>
 
@@ -244,11 +290,11 @@
 
             <div class="character-choice" id="characterChoice">
               <button class="character-choice-card" type="button" data-character="boy">
-                <img class="choice-character-image" src="assets/characters/cards/boy.png" alt="小男孩" />
+                <img class="choice-character-image choice-character-boy" src="assets/characters/boy_basic_display.png" alt="小男孩" />
                 <strong>小男孩</strong>
               </button>
               <button class="character-choice-card" type="button" data-character="girl">
-                <img class="choice-character-image" src="assets/characters/cards/girl.png" alt="小女孩" />
+                <img class="choice-character-image choice-character-girl" src="assets/characters/girl_basic_display.png" alt="小女孩" />
                 <strong>小女孩</strong>
               </button>
             </div>
@@ -257,22 +303,31 @@
               <div class="avatar-stage" id="avatarStage" aria-label="角色預覽"></div>
               <div class="character-actions">
                 <button class="secondary-button compact-button" id="changeCharacterButton" type="button">換角色</button>
-                <p id="chestMessage">完成 10 題可獲得 1G。</p>
+                <p id="chestMessage">完成 10 題可獲得金幣與 XP。</p>
               </div>
               <div class="chest-panel">
-                <button class="primary-button compact-button" id="openChestButton" type="button">開寶箱 50 金幣</button>
-                <p>收集完整角色，不再疊裝備。</p>
+                <button class="primary-button compact-button" id="openChestButton" type="button">開寶箱 10 金幣</button>
+                <p>開寶箱收集裝備，裝備後切換造型。</p>
               </div>
-              <div class="inventory-panel">
-                <h3>角色收藏</h3>
+              <div class="item-panel">
+                <h3>物品</h3>
+                <div class="item-grid" id="itemGrid"></div>
+              </div>
+              <details class="inventory-panel catalog-panel">
+                <summary>
+                  <h3>角色收藏</h3>
+                  <span>圖鑑</span>
+                </summary>
                 <div class="inventory-grid" id="inventoryGrid"></div>
-              </div>
-              <div class="gm-panel">
+              </details>
+              <div class="gm-panel gm-panel-hidden" aria-hidden="true">
                 <h3>GM 測試</h3>
                 <div class="gm-actions">
                   <button class="secondary-button compact-button" id="gmAddCoinsButton" type="button">+10G</button>
+                  <button class="secondary-button compact-button" id="gmLevelUpButton" type="button">等級 +1</button>
                   <button class="secondary-button compact-button" id="gmUnlockAllButton" type="button">解鎖全部</button>
                   <button class="secondary-button compact-button" id="gmOpenChestButton" type="button">測試寶箱</button>
+                  <button class="secondary-button compact-button" id="gmCycleMonsterButton" type="button">怪物 +1</button>
                   <button class="secondary-button compact-button" id="gmResetCharacterButton" type="button">重置角色</button>
                 </div>
               </div>
@@ -380,7 +435,7 @@
             <p class="reward-kicker">回合獎勵</p>
             <h2 id="rewardChestTitle">獲得寶箱！</h2>
             <button class="reward-chest-button" id="rewardChestButton" type="button" aria-label="點擊開啟寶箱">
-              <span class="reward-chest-icon" aria-hidden="true">🎁</span>
+              <img class="reward-chest-image" id="rewardChestImage" src="assets/ui/chest/chest_1_display.png" alt="" aria-hidden="true" />
             </button>
             <p class="reward-chest-hint" id="rewardChestHint">點擊寶箱開啟</p>
             <div class="reward-chest-result hidden" id="rewardChestResult"></div>

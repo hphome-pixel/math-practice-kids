@@ -1,6 +1,7 @@
 const TOTAL_QUESTIONS = 10;
 const PUZZLE_QUESTIONS = 9;
-const CHEST_COST = 50;
+const CHEST_COST = 10;
+const PERFECT_BONUS_GOLD = 3;
 
 const setupView = document.querySelector("#setupView");
 const settingsView = document.querySelector("#settingsView");
@@ -25,6 +26,19 @@ const reviewList = document.querySelector("#reviewList");
 const clearWritingButton = document.querySelector("#clearWritingButton");
 const submitAnswerButton = document.querySelector("#submitAnswerButton");
 const startButton = document.querySelector("#startButton");
+const bottomStartButton = document.querySelector("#bottomStartButton");
+const lobbyStartButton = document.querySelector("#lobbyStartButton");
+const lobbyChestButton = document.querySelector("#lobbyChestButton");
+const lobbyCharacterButton = document.querySelector("#lobbyCharacterButton");
+const lobbyCharacterCard = document.querySelector("#lobbyCharacterCard");
+const lobbyCharacterMedia = document.querySelector("#lobbyCharacterMedia");
+const lobbyCharacterImage = document.querySelector("#lobbyCharacterImage");
+const lobbyCharacterName = document.querySelector("#lobbyCharacterName");
+const lobbyCharacterRarity = document.querySelector("#lobbyCharacterRarity");
+const lobbyLevelText = document.querySelector("#lobbyLevelText");
+const lobbyXpText = document.querySelector("#lobbyXpText");
+const lobbyStreakText = document.querySelector("#lobbyStreakText");
+const practiceSummaryText = document.querySelector("#practiceSummaryText");
 const settingsButton = document.querySelector("#settingsButton");
 const characterButton = document.querySelector("#characterButton");
 const arithmeticSettings = document.querySelector("#arithmeticSettings");
@@ -68,16 +82,20 @@ const chestMessage = document.querySelector("#chestMessage");
 const openChestButton = document.querySelector("#openChestButton");
 const rewardChestOverlay = document.querySelector("#rewardChestOverlay");
 const rewardChestButton = document.querySelector("#rewardChestButton");
+const rewardChestImage = document.querySelector("#rewardChestImage");
 const rewardChestHint = document.querySelector("#rewardChestHint");
 const rewardChestResult = document.querySelector("#rewardChestResult");
 const rewardChestCloseButton = document.querySelector("#rewardChestCloseButton");
 const claimChestButton = document.querySelector("#claimChestButton");
 const changeCharacterButton = document.querySelector("#changeCharacterButton");
 const inventoryGrid = document.querySelector("#inventoryGrid");
+const itemGrid = document.querySelector("#itemGrid");
 const characterHint = document.querySelector("#characterHint");
 const gmAddCoinsButton = document.querySelector("#gmAddCoinsButton");
+const gmLevelUpButton = document.querySelector("#gmLevelUpButton");
 const gmUnlockAllButton = document.querySelector("#gmUnlockAllButton");
 const gmOpenChestButton = document.querySelector("#gmOpenChestButton");
+const gmCycleMonsterButton = document.querySelector("#gmCycleMonsterButton");
 const gmResetCharacterButton = document.querySelector("#gmResetCharacterButton");
 let nextQuestionTimer = null;
 let quizTimer = null;
@@ -85,6 +103,18 @@ let digitTemplates = null;
 let audioContext = null;
 let pendingRoundChest = false;
 let pendingChestCost = 0;
+let chestAnimationTimers = [];
+
+const CHEST_IMAGE_STAGES = [
+  "assets/ui/chest/chest_1_display.png",
+  "assets/ui/chest/chest_1_display.png",
+  "assets/ui/chest/chest_1_display.png",
+  "assets/ui/chest/chest_4_display.png",
+];
+CHEST_IMAGE_STAGES.forEach((src) => {
+  const image = new Image();
+  image.src = src;
+});
 
 const translations = {
   en: {
@@ -100,26 +130,30 @@ const translations = {
     "全部拼好了，先看一下完成的圖片。": "All pieces are complete. Take a moment to enjoy the picture.",
     "先解開幾片也很棒，下一輪繼續。": "Unlocking a few pieces is still progress. Keep going next round.",
     "數學練習": "Math Practice",
+    "金幣數學島": "Coin Math Island",
+    "練習設定": "Practice Settings",
+    "點我調整題目": "Tap to adjust questions",
+    "可領取": "Claim",
     "角色": "Character",
     "我的角色": "My Character",
     "選擇一位陪你一起練習的夥伴": "Choose a buddy to practice with you",
     "小男孩": "Boy",
     "小女孩": "Girl",
     "寶箱 10G": "Chest 10G",
-    "開寶箱 50 金幣": "Open Chest 50 Coins",
     "換角色": "Change Character",
-    "完成 10 題可獲得 1G。": "Complete 10 questions to earn 1G.",
+    "完成 10 題可獲得金幣與 XP。": "Complete 10 questions to earn coins and XP.",
+    "GM 測試": "GM Test",
     "裝飾品": "Accessories",
     "角色收藏": "Character Collection",
     "目前角色": "Current Character",
-    "收集完整角色，不再疊裝備。": "Collect complete characters. No equipment layers.",
+    "收集裝備，裝備後解鎖對應造型。": "Collect gear and equip it to unlock matching skins.",
+    "裝備物品會切換造型，角色收藏只作為圖鑑。": "Equip items to change skins. Character collection is a gallery.",
     "裝備中": "Equipped",
     "可裝備": "Equip",
     "未獲得": "Locked",
     "需要 10G 才能抽寶箱。": "You need 10G to open a chest.",
-    "需要 50 金幣才能抽寶箱。": "You need 50 coins to open a chest.",
+    "需要 10 金幣才能抽寶箱。": "You need 10 coins to open a chest.",
     "所有裝飾品都收集完成了！": "All accessories have been collected!",
-    "GM 測試": "GM Test",
     "解鎖全部": "Unlock All",
     "測試寶箱": "Test Chest",
     "重置角色": "Reset Character",
@@ -138,8 +172,29 @@ const translations = {
     "連續答對": "Combo",
     "不想斷": "Keep it going",
     "做題賺金幣與 XP，開寶箱收集裝備。": "Answer questions to earn coins and XP, then open chests to collect gear.",
+    "開寶箱收集裝備，裝備後切換造型。": "Open chests to collect gear, then equip it to change skins.",
+    "普通角色": "Common Characters",
+    "稀有角色": "Rare Characters",
+    "史詩角色": "Epic Characters",
+    "傳說角色": "Legendary Characters",
+    "寶箱可獲得": "Chest reward",
+    "物品可解鎖": "Item unlock",
+    "需要物品": "Needs item",
+    "物品": "Items",
+    "已擁有": "Owned",
+    "裝備": "Equip",
+    "已裝備": "Equipped",
+    "解鎖角色": "Unlocks character",
+    "物品寶箱可獲得": "Chest item",
+    "勇者之劍": "Hero Sword",
+    "睡衣": "Pajamas",
+    "運動鞋": "Sport Shoes",
+    "抽到新物品": "New item",
+    "已解鎖造型": "Skin unlocked",
+    "完美獎勵": "Perfect Bonus",
     "普通": "Common",
     "稀有": "Rare",
+    "史詩": "Epic",
     "傳說": "Legendary",
     "設定": "Settings",
     "選擇練習": "Choose Practice",
@@ -254,10 +309,12 @@ const textNodes = [];
 const RARITY_LABELS = {
   common: "普通",
   rare: "稀有",
+  epic: "史詩",
   legendary: "傳說",
 };
 
-const XP_PER_LEVEL = 100;
+const BASE_LEVEL_XP = 100;
+const LEVEL_XP_STEP = 30;
 
 const accessoryCatalog = [
   { id: "cap-sun", slot: "hat", name: "陽光帽", enName: "Sunny Cap", icon: "帽", className: "sun-cap" },
@@ -309,7 +366,7 @@ const accessoryCatalog = [
     enName: "Mint Top",
     icon: "衣",
     className: "mint-top",
-    rarity: "common",
+    rarity: "rare",
     prototypeAssets: {
       boy: "assets/accessories/boy/top-mint.png",
       girl: "assets/accessories/girl/top-mint.png",
@@ -413,22 +470,159 @@ const characterLayerAssets = {
 };
 
 const characterCatalog = [
-  { id: "boy", name: "元氣男孩", enName: "Bright Boy", rarity: "common", image: "assets/characters/cards/boy.png", owned: true },
-  { id: "boy_sport", name: "運動男孩", enName: "Sport Boy", rarity: "common", image: "assets/characters/cards/boy_sport.png" },
-  { id: "boy_star", name: "星星男孩", enName: "Star Boy", rarity: "rare", image: "assets/characters/cards/boy_star.png" },
-  { id: "boy_hero", name: "英雄男孩", enName: "Hero Boy", rarity: "rare", image: "assets/characters/cards/boy_hero.png" },
-  { id: "boy_legend", name: "傳說男孩", enName: "Legend Boy", rarity: "legendary", image: "assets/characters/cards/boy_legend.png" },
-  { id: "girl", name: "元氣女孩", enName: "Bright Girl", rarity: "common", image: "assets/characters/cards/girl.png", owned: true },
-  { id: "girl_flower", name: "花朵女孩", enName: "Flower Girl", rarity: "common", image: "assets/characters/cards/girl_flower.png" },
-  { id: "girl_star", name: "星星女孩", enName: "Star Girl", rarity: "rare", image: "assets/characters/cards/girl_star.png" },
-  { id: "girl_princess", name: "公主學生", enName: "Princess Student", rarity: "rare", image: "assets/characters/cards/girl_princess.png" },
-  { id: "girl_magic", name: "魔法學生", enName: "Magic Student", rarity: "legendary", image: "assets/characters/cards/girl_magic.png" },
+  { id: "boy", name: "元氣男孩", enName: "Bright Boy", rarity: "common", image: "assets/characters/boy_basic_display.png", owned: true },
+  { id: "boy_pajama", name: "睡衣男孩", enName: "Pajama Boy", rarity: "common", image: "assets/characters/Common/boy_pajama.mp4", mediaType: "video", unlockType: "item", requiredItem: "pajama" },
+  { id: "boy_sport", name: "運動男孩", enName: "Sport Boy", rarity: "common", image: "assets/characters/Common/boy_sport.mp4", mediaType: "video", unlockType: "item", requiredItem: "sport_shoes" },
+  { id: "cat_boy", name: "貓咪男孩", enName: "Cat Boy", rarity: "common", image: "assets/characters/Common/cat_boy.mp4", mediaType: "video", unlockType: "item", requiredItem: "cat" },
+  { id: "porm_boy", name: "舞會男孩", enName: "Prom Boy", rarity: "rare", image: "assets/characters/Rare/prom_boy.mp4", mediaType: "video", unlockType: "item", requiredItem: "porm_mask" },
+  { id: "hero_boy", name: "勇者男孩", enName: "Hero Boy", rarity: "epic", image: "assets/characters/Epic/hero_boy.mp4", mediaType: "video", unlockType: "item", requiredItem: "hero_sword" },
+  { id: "wand_boy", name: "魔杖男孩", enName: "Wand Boy", rarity: "epic", image: "assets/characters/Epic/wand_boy.mp4", mediaType: "video", unlockType: "item", requiredItem: "magic_wand" },
+  { id: "angel_wings_boy", name: "天使男孩", enName: "Angel Boy", rarity: "legendary", image: "assets/characters/Legendary/angel_wings_boy.mp4", mediaType: "video", unlockType: "item", requiredItem: "angel_wings" },
+  { id: "demon_hunter_core_badge_boy", name: "獵魔男孩", enName: "Demon Hunter Boy", rarity: "legendary", image: "assets/characters/Legendary/demon_hunter_core_badge_boy.mp4", mediaType: "video", unlockType: "item", requiredItem: "demon_hunter_core_badge" },
+  { id: "girl", name: "元氣女孩", enName: "Bright Girl", rarity: "common", image: "assets/characters/girl_basic_display.png", owned: true },
+  { id: "girl_pajama", name: "睡衣女孩", enName: "Pajama Girl", rarity: "common", image: "assets/characters/Common/girl_pajama.mp4", mediaType: "video", unlockType: "item", requiredItem: "pajama" },
+  { id: "girl_sport", name: "運動女孩", enName: "Sport Girl", rarity: "common", image: "assets/characters/Common/girl_sport.mp4", mediaType: "video", unlockType: "item", requiredItem: "sport_shoes" },
+  { id: "cat_girl", name: "貓咪女孩", enName: "Cat Girl", rarity: "common", image: "assets/characters/Common/cat_girl.mp4", mediaType: "video", unlockType: "item", requiredItem: "cat" },
+  { id: "porm_girl", name: "舞會女孩", enName: "Prom Girl", rarity: "rare", image: "assets/characters/Rare/porm_girl.mp4", mediaType: "video", unlockType: "item", requiredItem: "porm_mask" },
+  { id: "hero_girl", name: "勇者女孩", enName: "Hero Girl", rarity: "epic", image: "assets/characters/Epic/hero_girl.mp4", mediaType: "video", unlockType: "item", requiredItem: "hero_sword" },
+  { id: "wand_girl", name: "魔杖女孩", enName: "Wand Girl", rarity: "epic", image: "assets/characters/Epic/wand_girl.mp4", mediaType: "video", unlockType: "item", requiredItem: "magic_wand" },
+  { id: "angel_wings_girl", name: "天使女孩", enName: "Angel Girl", rarity: "legendary", image: "assets/characters/Legendary/angel_wings_girl.mp4", mediaType: "video", unlockType: "item", requiredItem: "angel_wings" },
+  { id: "demon_hunter_core_badge_girl", name: "獵魔女孩", enName: "Demon Hunter Girl", rarity: "legendary", image: "assets/characters/Legendary/demon_hunter_core_badge_girl.mp4", mediaType: "video", unlockType: "item", requiredItem: "demon_hunter_core_badge" },
+  { id: "level_5_explorer", name: "見習探險家", enName: "Junior Explorer", rarity: "rare", unlockType: "level", requiredLevel: 5, token: "Lv" },
+  { id: "level_10_captain", name: "金幣隊長", enName: "Coin Captain", rarity: "epic", unlockType: "level", requiredLevel: 10, token: "10" },
+  { id: "level_20_scholar", name: "星光學者", enName: "Star Scholar", rarity: "legendary", unlockType: "level", requiredLevel: 20, token: "星" },
+  { id: "add_mage", name: "加法小法師", enName: "Addition Mage", rarity: "rare", unlockType: "achievement", statKey: "addCorrect", requiredCorrect: 100, token: "+" },
+  { id: "subtract_ninja", name: "減法忍者", enName: "Subtraction Ninja", rarity: "rare", unlockType: "achievement", statKey: "subtractCorrect", requiredCorrect: 100, token: "−" },
+  { id: "multiply_captain", name: "乘法隊長", enName: "Multiply Captain", rarity: "epic", unlockType: "achievement", statKey: "multiplyCorrect", requiredCorrect: 100, token: "×" },
+  { id: "divide_doctor", name: "除法博士", enName: "Division Doctor", rarity: "epic", unlockType: "achievement", statKey: "divideCorrect", requiredCorrect: 100, token: "÷" },
+];
+
+const itemCatalog = [
+  {
+    id: "sport_shoes",
+    name: "運動鞋",
+    enName: "Sport Shoes",
+    rarity: "common",
+    icon: "鞋",
+    iconImage: "assets/characters/Inventory/Common/sport.png",
+    unlocksCharacter: {
+      boy: "boy_sport",
+      girl: "girl_sport",
+    },
+  },
+  {
+    id: "hero_sword",
+    name: "勇者之劍",
+    enName: "Hero Sword",
+    rarity: "epic",
+    icon: "劍",
+    iconImage: "assets/characters/Inventory/Epic/sword.png",
+    unlocksCharacter: {
+      boy: "hero_boy",
+      girl: "hero_girl",
+    },
+  },
+  {
+    id: "pajama",
+    name: "睡衣",
+    enName: "Pajamas",
+    rarity: "common",
+    icon: "衣",
+    iconImage: "assets/characters/Inventory/Common/pajama.png",
+    unlocksCharacter: {
+      boy: "boy_pajama",
+      girl: "girl_pajama",
+    },
+  },
+  {
+    id: "cat",
+    name: "貓咪",
+    enName: "Cat",
+    rarity: "common",
+    icon: "貓",
+    iconImage: "assets/characters/Inventory/Common/cat.png",
+    unlocksCharacter: {
+      boy: "cat_boy",
+      girl: "cat_girl",
+    },
+  },
+  {
+    id: "porm_mask",
+    name: "舞會面具",
+    enName: "Prom Mask",
+    rarity: "rare",
+    icon: "面",
+    iconImage: "assets/characters/Inventory/Rare/Prom_mask.png",
+    unlocksCharacter: {
+      boy: "porm_boy",
+      girl: "porm_girl",
+    },
+  },
+  {
+    id: "magic_wand",
+    name: "魔法棒",
+    enName: "Magic Wand",
+    rarity: "epic",
+    icon: "杖",
+    iconImage: "assets/characters/Inventory/Epic/wand.png",
+    unlocksCharacter: {
+      boy: "wand_boy",
+      girl: "wand_girl",
+    },
+  },
+  {
+    id: "angel_wings",
+    name: "天使翅膀",
+    enName: "Angel Wings",
+    rarity: "legendary",
+    icon: "翼",
+    iconImage: "assets/characters/Inventory/Legendary/angel_wings.png",
+    unlocksCharacter: {
+      boy: "angel_wings_boy",
+      girl: "angel_wings_girl",
+    },
+  },
+  {
+    id: "demon_hunter_core_badge",
+    name: "獵魔徽章",
+    enName: "Demon Hunter Badge",
+    rarity: "legendary",
+    icon: "徽",
+    iconImage: "assets/characters/Inventory/Legendary/demon_hunter_core_badge.png",
+    unlocksCharacter: {
+      boy: "demon_hunter_core_badge_boy",
+      girl: "demon_hunter_core_badge_girl",
+    },
+  },
 ];
 
 const monsterTypes = [
+  { id: "slime", name: "史萊姆", image: "assets/games/mosters/slime.png" },
+  { id: "fire_dragon", name: "火焰龍", image: "assets/games/mosters/fire_dragon.png" },
   { id: "vampire", name: "吸血鬼" },
   { id: "werewolf", name: "狼人" },
   { id: "zombie", name: "殭屍" },
+];
+
+const puzzleAssets = [
+  {
+    id: "ballroom_dance",
+    name: "舞會女孩",
+    enName: "Ballroom Dance",
+    url: "assets/games/puzzles/ballroom_dance.png",
+  },
+  {
+    id: "anime_sporty",
+    name: "運動少女",
+    enName: "Anime Sporty",
+    url: "assets/games/puzzles/anime_sporty.png",
+  },
+  {
+    id: "magic",
+    name: "魔法少女",
+    enName: "Magic",
+    url: "assets/games/puzzles/magic.png",
+  },
 ];
 
 const gameState = {
@@ -448,6 +642,19 @@ const gameState = {
   combo: 0,
   level: 1,
   xp: 0,
+  stats: {
+    addCorrect: 0,
+    subtractCorrect: 0,
+    multiplyCorrect: 0,
+    divideCorrect: 0,
+  },
+  claimedRewards: [],
+  ownedItems: [],
+  equippedItem: null,
+  gachaPity: {
+    sinceEpic: 0,
+    sinceLegendary: 0,
+  },
 };
 
 const state = {
@@ -496,13 +703,17 @@ const state = {
 };
 
 startButton.addEventListener("click", startQuiz);
+bottomStartButton.addEventListener("click", startQuiz);
+lobbyStartButton.addEventListener("click", startQuiz);
+lobbyChestButton.addEventListener("click", openChest);
+lobbyCharacterButton.addEventListener("click", showCharacter);
 document.querySelector("#stopButton").addEventListener("click", stopQuiz);
 document.querySelector("#againButton").addEventListener("click", startQuiz);
 document.querySelector("#changeButton").addEventListener("click", showSetup);
 document.querySelector("#wrongOnlyButton").addEventListener("click", startWrongOnlyQuiz);
 claimChestButton.addEventListener("click", claimResultChest);
 settingsButton.addEventListener("click", showSettings);
-characterButton.addEventListener("click", showCharacter);
+characterButton?.addEventListener("click", showCharacter);
 document.querySelector("#settingsBackButton").addEventListener("click", showSetup);
 document.querySelector("#characterBackButton").addEventListener("click", showSetup);
 document.querySelector("#monsterStopButton").addEventListener("click", showSetup);
@@ -524,11 +735,18 @@ document.querySelectorAll("input[name='miniGameMode']").forEach((input) => {
   input.addEventListener("change", updateStartButtonText);
 });
 document.querySelectorAll("input[name='miniGameOperation']").forEach((input) => {
-  input.addEventListener("change", updateStartButtonText);
+  input.addEventListener("change", updateSetupMode);
+});
+document.querySelectorAll("input[name='digits']").forEach((input) => {
+  input.addEventListener("change", updatePracticeSummary);
+});
+document.querySelectorAll("input[name='addDifficulty'], input[name='subtractDifficulty'], input[name='divideMode']").forEach((input) => {
+  input.addEventListener("change", updatePracticeSummary);
 });
 document.querySelectorAll("[data-character]").forEach((button) => {
   button.addEventListener("click", () => chooseCharacter(button.dataset.character));
 });
+lobbyCharacterCard.addEventListener("click", () => playActiveCharacterAnimation(lobbyCharacterCard));
 openChestButton.addEventListener("click", openChest);
 rewardChestButton.addEventListener("click", openRewardChest);
 rewardChestCloseButton.addEventListener("click", () => {
@@ -537,8 +755,10 @@ rewardChestCloseButton.addEventListener("click", () => {
 });
 changeCharacterButton.addEventListener("click", resetCharacterChoice);
 gmAddCoinsButton.addEventListener("click", gmAddCoins);
+gmLevelUpButton.addEventListener("click", gmLevelUp);
 gmUnlockAllButton.addEventListener("click", gmUnlockAll);
 gmOpenChestButton.addEventListener("click", gmOpenChest);
+gmCycleMonsterButton.addEventListener("click", gmCycleMonster);
 gmResetCharacterButton.addEventListener("click", gmResetCharacter);
 timedModeToggle.addEventListener("change", updateStartButtonText);
 timeLimitInput.addEventListener("input", updateStartButtonText);
@@ -597,7 +817,7 @@ function collectTextNodes() {
 
 function applyLanguage() {
   document.documentElement.lang = state.language;
-  document.title = t("數學練習");
+  document.title = t("金幣數學島");
   textNodes.forEach(({ node, originalValue, zhText }) => {
     const translated = t(zhText);
     node.nodeValue = originalValue.replace(zhText, translated);
@@ -643,7 +863,7 @@ function loadCharacterState() {
     const rawGameState = localStorage.getItem("mathPracticeGameState");
     const rawLegacyState = localStorage.getItem("mathPracticeCharacter");
     const data = rawGameState ? JSON.parse(rawGameState) : rawLegacyState ? JSON.parse(rawLegacyState) : {};
-    state.character = data.character || null;
+    state.character = normalizeBaseCharacterId(data.character || null);
     gameState.gold = Number(data.gold ?? data.coins) || 0;
     gameState.gems = Number(data.gems) || 0;
     gameState.inventory = Array.isArray(data.inventory)
@@ -652,8 +872,10 @@ function loadCharacterState() {
     gameState.unlockedCharacters = Array.isArray(data.unlockedCharacters)
       ? data.unlockedCharacters
       : ["boy", "girl"];
+    gameState.ownedItems = normalizeOwnedItems(data.ownedItems);
+    gameState.equippedItem = gameState.ownedItems.includes(data.equippedItem) ? data.equippedItem : null;
     gameState.unlockedCharacters = normalizeUnlockedCharacters(gameState.unlockedCharacters);
-    state.character = data.character ? normalizeCharacterId(state.character, gameState.unlockedCharacters) : null;
+    state.character = data.character ? normalizeBaseCharacterId(state.character) : null;
     gameState.equipped = {
       ...gameState.equipped,
       ...(data.equipped || data.equippedAccessories || {}),
@@ -662,6 +884,15 @@ function loadCharacterState() {
     gameState.combo = Number(data.combo) || 0;
     gameState.xp = Number(data.xp) || 0;
     gameState.level = getLevelFromXp(gameState.xp);
+    gameState.stats = {
+      ...gameState.stats,
+      ...(data.stats || {}),
+    };
+    gameState.claimedRewards = Array.isArray(data.claimedRewards) ? data.claimedRewards : [];
+    gameState.gachaPity = {
+      sinceEpic: Number(data.gachaPity?.sinceEpic) || 0,
+      sinceLegendary: Number(data.gachaPity?.sinceLegendary) || 0,
+    };
     syncLegacyGameFields();
   } catch {
     state.character = null;
@@ -674,6 +905,11 @@ function loadCharacterState() {
     gameState.combo = 0;
     gameState.xp = 0;
     gameState.level = 1;
+    gameState.stats = { addCorrect: 0, subtractCorrect: 0, multiplyCorrect: 0, divideCorrect: 0 };
+    gameState.claimedRewards = [];
+    gameState.ownedItems = [];
+    gameState.equippedItem = null;
+    gameState.gachaPity = { sinceEpic: 0, sinceLegendary: 0 };
     syncLegacyGameFields();
   }
 }
@@ -692,6 +928,11 @@ function saveCharacterState() {
       combo: gameState.combo,
       level: gameState.level,
       xp: gameState.xp,
+      stats: gameState.stats,
+      claimedRewards: gameState.claimedRewards,
+      ownedItems: gameState.ownedItems,
+      equippedItem: gameState.equippedItem,
+      gachaPity: gameState.gachaPity,
     }));
   } catch {
     // The dress-up system still works for the current visit.
@@ -709,30 +950,192 @@ function normalizeUnlockedCharacters(ids) {
   return normalized.filter((id) => characterCatalog.some((character) => character.id === id));
 }
 
-function normalizeCharacterId(characterId, ownedIds) {
-  if (characterCatalog.some((character) => character.id === characterId) && ownedIds.includes(characterId)) {
-    return characterId;
-  }
-  return ownedIds[0] || "boy";
+function normalizeOwnedItems(ids) {
+  if (!Array.isArray(ids)) return [];
+  return Array.from(new Set(ids)).filter((id) => itemCatalog.some((item) => item.id === id));
+}
+
+function normalizeBaseCharacterId(characterId) {
+  if (characterId === "girl" || String(characterId || "").includes("girl")) return "girl";
+  if (characterId === "boy" || String(characterId || "").includes("boy")) return "boy";
+  return null;
+}
+
+function isCharacterUnlocked(characterId, ownedIds = gameState.unlockedCharacters) {
+  if (ownedIds.includes(characterId)) return true;
+  const character = getCharacterById(characterId);
+  return character.unlockType === "item" && gameState.ownedItems.includes(character.requiredItem);
 }
 
 function getCharacterById(characterId) {
   return characterCatalog.find((character) => character.id === characterId) || characterCatalog[0];
 }
 
+function getItemById(itemId) {
+  return itemCatalog.find((item) => item.id === itemId) || null;
+}
+
+function getItemCharacterId(item, baseCharacter = state.character) {
+  if (!item || !item.unlocksCharacter || !baseCharacter) return baseCharacter || "boy";
+  if (typeof item.unlocksCharacter === "string") return item.unlocksCharacter;
+  return item.unlocksCharacter[baseCharacter] || baseCharacter;
+}
+
+function getActiveCharacterId() {
+  const baseCharacter = state.character || "boy";
+  const item = getItemById(gameState.equippedItem);
+  return getItemCharacterId(item, baseCharacter);
+}
+
+function getActiveCharacter() {
+  return getCharacterById(getActiveCharacterId());
+}
+
+function getCharacterImageMarkup(character, altText, className = "character-image") {
+  if (character.mediaType === "video" && character.image) {
+    return `
+      <video
+        class="${className} character-video"
+        src="${character.image}"
+        aria-label="${altText}"
+        muted
+        playsinline
+        preload="metadata"
+      ></video>
+    `;
+  }
+  if (character.image) {
+    return `<img class="${className}" src="${character.image}" alt="${altText}" />`;
+  }
+  return `<div class="${className} placeholder-character" aria-label="${altText}">${character.token || "?"}</div>`;
+}
+
+function renderCharacterMedia(character, altText, className = "character-image") {
+  return getCharacterImageMarkup(character, altText, className);
+}
+
+function resetCharacterVideo(video) {
+  if (!video) return;
+  const reset = () => {
+    video.pause();
+    try {
+      video.currentTime = 0.001;
+    } catch {
+      video.load();
+    }
+    video.classList.remove("is-playing");
+  };
+  if (video.readyState >= 1) {
+    reset();
+  } else {
+    video.addEventListener("loadedmetadata", reset, { once: true });
+  }
+}
+
+function prepareCharacterVideos(container = document) {
+  container.querySelectorAll("video.character-video").forEach((video) => {
+    if (video.dataset.videoPrepared) {
+      return;
+    }
+    video.dataset.videoPrepared = "true";
+    video.addEventListener("ended", () => resetCharacterVideo(video));
+    resetCharacterVideo(video);
+  });
+}
+
+function getPlaceholderCharacterDataUrl(character) {
+  const rarityColors = {
+    common: "#8b969e",
+    rare: "#4c7bd9",
+    epic: "#9c5cff",
+    legendary: "#f7c948",
+  };
+  const color = rarityColors[character.rarity] || rarityColors.common;
+  const token = character.token || "?";
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="768" height="1024" viewBox="0 0 768 1024">
+      <rect width="768" height="1024" rx="44" fill="#ffffff"/>
+      <rect x="54" y="54" width="660" height="916" rx="38" fill="#f7fffb" stroke="${color}" stroke-width="18"/>
+      <circle cx="384" cy="430" r="150" fill="${color}" opacity="0.18"/>
+      <text x="384" y="500" text-anchor="middle" font-family="Segoe UI, Arial" font-size="190" font-weight="900" fill="${color}">${token}</text>
+    </svg>
+  `;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+function renderLobby() {
+  updateTopCoins();
+  const character = getActiveCharacter();
+  const characterName = state.language === "en" ? character.enName : character.name;
+  const rarityLabel = t(RARITY_LABELS[character.rarity] || RARITY_LABELS.common);
+  lobbyCharacterMedia.innerHTML = renderCharacterMedia(character, characterName, "lobby-character-asset");
+  prepareCharacterVideos(lobbyCharacterMedia);
+  lobbyCharacterName.textContent = characterName;
+  lobbyCharacterRarity.textContent = rarityLabel;
+  lobbyCharacterCard.className = `lobby-character-card rarity-${character.rarity}`;
+  lobbyCharacterCard.dataset.mediaType = character.mediaType || "image";
+  lobbyLevelText.textContent = `Lv.${gameState.level}`;
+  lobbyXpText.textContent = `${getXpProgress()} / ${getXpNeededForLevel(gameState.level)}`;
+  lobbyStreakText.textContent = `${gameState.streak}`;
+  lobbyChestButton.disabled = gameState.gold < CHEST_COST || !state.character;
+  updatePracticeSummary();
+}
+
+function updatePracticeSummary() {
+  const practiceMode = document.querySelector("input[name='practiceMode']:checked").value;
+  const modeNames = {
+    add: t("加法練習"),
+    subtract: t("減法練習"),
+    multiply: t("乘法練習"),
+    divide: t("除法練習"),
+    miniGames: t("小遊戲"),
+  };
+  const digits = document.querySelector("input[name='digits']:checked")?.value || "1";
+  const digitNames = {
+    1: "個位",
+    2: "十位",
+    3: "百位",
+    4: "千位",
+  };
+  if (practiceMode === "miniGames") {
+    const gameName = document.querySelector("input[name='miniGameMode']:checked")?.parentElement?.querySelector("span")?.textContent || "";
+    const operationName = document.querySelector("input[name='miniGameOperation']:checked")?.parentElement?.textContent?.trim() || "";
+    practiceSummaryText.textContent = `${modeNames[practiceMode]}・${gameName}・${operationName}・${digitNames[digits] || ""}`;
+    return;
+  }
+  practiceSummaryText.textContent = `${modeNames[practiceMode]}・${digitNames[digits] || ""}`;
+}
+
 function getLevelFromXp(xp) {
-  return Math.floor(xp / XP_PER_LEVEL) + 1;
+  let level = 1;
+  while (xp >= getTotalXpForLevel(level + 1)) {
+    level += 1;
+  }
+  return level;
 }
 
 function getXpProgress() {
-  return gameState.xp % XP_PER_LEVEL;
+  return gameState.xp - getTotalXpForLevel(gameState.level);
+}
+
+function getXpNeededForLevel(level) {
+  return BASE_LEVEL_XP + Math.max(0, level - 1) * LEVEL_XP_STEP;
+}
+
+function getTotalXpForLevel(level) {
+  let total = 0;
+  for (let currentLevel = 1; currentLevel < level; currentLevel += 1) {
+    total += getXpNeededForLevel(currentLevel);
+  }
+  return total;
 }
 
 function chooseCharacter(character) {
-  if (!gameState.unlockedCharacters.includes(character)) {
+  if (character !== "boy" && character !== "girl") {
     return;
   }
   state.character = character;
+  gameState.equippedItem = null;
   saveCharacterState();
   renderCharacterPanel();
 }
@@ -745,18 +1148,20 @@ function resetCharacterChoice() {
 
 function renderCharacterPanel() {
   updateTopCoins();
+  renderLobby();
   characterCoinText.innerHTML = formatCoinDisplay(gameState.gold);
   levelText.textContent = `Lv.${gameState.level}`;
-  xpText.textContent = `${getXpProgress()} / ${XP_PER_LEVEL}`;
+  xpText.textContent = `${getXpProgress()} / ${getXpNeededForLevel(gameState.level)}`;
   streakText.textContent = `${gameState.streak}`;
   characterChoice.classList.toggle("hidden", Boolean(state.character));
   characterDashboard.classList.toggle("hidden", !state.character);
   characterHint.textContent = state.character
-    ? t("收集完整角色，不再疊裝備。")
+    ? t("裝備物品會切換造型，角色收藏只作為圖鑑。")
     : t("選擇一位陪你一起練習的夥伴");
   openChestButton.disabled = gameState.gold < CHEST_COST || !state.character;
   renderAvatar();
   renderCharacterCollection();
+  renderItemInventory();
 }
 
 function renderAvatar() {
@@ -765,18 +1170,58 @@ function renderAvatar() {
     return;
   }
   avatarStage.className = "avatar-stage";
-  const character = getCharacterById(state.character);
+  const character = getActiveCharacter();
   const characterName = state.language === "en" ? character.enName : character.name;
   const rarityLabel = t(RARITY_LABELS[character.rarity] || RARITY_LABELS.common);
   avatarStage.innerHTML = `
-    <figure class="avatar-complete-card rarity-${character.rarity}">
-      <img class="character-image" src="${character.image}" alt="${characterName}" />
+    <figure class="avatar-complete-card rarity-${character.rarity}" data-avatar-card data-media-type="${character.mediaType || "image"}">
+      ${getCharacterImageMarkup(character, characterName)}
       <figcaption>
         <strong>${characterName}</strong>
         <span>${rarityLabel}</span>
       </figcaption>
     </figure>
   `;
+  prepareCharacterVideos(avatarStage);
+  avatarStage.querySelector("[data-avatar-card]")?.addEventListener("click", playActiveCharacterAnimation);
+}
+
+function playActiveCharacterAnimation(targetCard = avatarStage.querySelector("[data-avatar-card]")) {
+  const target = targetCard || avatarStage.querySelector("[data-avatar-card]") || lobbyCharacterCard;
+  if (!target) {
+    return;
+  }
+  const character = getActiveCharacter();
+  const video = target.querySelector("video");
+  if (video) {
+    playEquipSound(character.rarity);
+    video.classList.add("is-playing");
+    video.muted = !state.soundEnabled;
+    video.volume = state.soundEnabled ? 0.85 : 0;
+    video.currentTime = 0;
+    video.play().catch(() => {
+      video.muted = true;
+      resetCharacterVideo(video);
+      target.classList.remove("character-tap-burst");
+      void target.offsetWidth;
+      target.classList.add("character-tap-burst");
+    });
+    return;
+  }
+  playEquipSound(character.rarity);
+  target.classList.remove("character-tap-burst");
+  void target.offsetWidth;
+  target.classList.add("character-tap-burst");
+}
+
+function scrollToAvatarPreview() {
+  if (!avatarStage || characterDashboard.classList.contains("hidden")) {
+    return;
+  }
+  window.setTimeout(() => {
+    avatarStage.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.setTimeout(() => playActiveCharacterAnimation(), 360);
+  }, 80);
 }
 
 function makeCharacterSvg() {
@@ -1112,27 +1557,181 @@ function makeHandAccessorySvg(item) {
 }
 
 function renderCharacterCollection() {
-  const ownedCharacters = characterCatalog.filter((character) => gameState.unlockedCharacters.includes(character.id));
-  inventoryGrid.innerHTML = ownedCharacters.map((character) => {
-    const isSelected = state.character === character.id;
-    const label = state.language === "en" ? character.enName : character.name;
-    const rarityLabel = t(RARITY_LABELS[character.rarity] || RARITY_LABELS.common);
+  const rarityGroups = [
+    { rarity: "common", title: state.language === "en" ? "Common Items" : "普通物品" },
+    { rarity: "rare", title: state.language === "en" ? "Rare Items" : "稀有物品" },
+    { rarity: "epic", title: state.language === "en" ? "Epic Items" : "史詩物品" },
+    { rarity: "legendary", title: state.language === "en" ? "Legendary Items" : "傳說物品" },
+  ];
+
+  inventoryGrid.innerHTML = rarityGroups.map((group, index) => {
+    const characters = characterCatalog.filter((character) => character.rarity === group.rarity);
+    const ownedCount = characters.filter((character) => isCharacterUnlocked(character.id)).length;
     return `
-      <button
-        class="collection-character-card ${isSelected ? "equipped" : ""} rarity-${character.rarity}"
-        type="button"
-        data-character-card="${character.id}"
-      >
-        <img src="${character.image}" alt="${label}" />
-        <span>${label}</span>
-        <em>${rarityLabel}</em>
-        <small>${isSelected ? t("目前角色") : state.language === "en" ? "Switch" : "切換"}</small>
-      </button>
+      <details class="rarity-collection-group rarity-${group.rarity}" ${index < 2 ? "open" : ""}>
+        <summary>
+          <span>${group.title}</span>
+          <strong>${ownedCount}/${characters.length}</strong>
+        </summary>
+        <div class="rarity-character-grid">
+          ${characters.map(renderCollectionCharacterCard).join("")}
+        </div>
+      </details>
     `;
   }).join("");
-  inventoryGrid.querySelectorAll("[data-character-card]").forEach((button) => {
-    button.addEventListener("click", () => chooseCharacter(button.dataset.characterCard));
+}
+
+function renderCollectionCharacterCard(character) {
+  const isOwned = isCharacterUnlocked(character.id);
+  const label = state.language === "en" ? character.enName : character.name;
+  const rarityLabel = t(RARITY_LABELS[character.rarity] || RARITY_LABELS.common);
+  const unlockInfo = getUnlockInfo(character);
+  const canClaim = !isOwned && unlockInfo.canClaim;
+  return `
+    <button
+      class="collection-character-card ${isOwned ? "" : "locked"} ${canClaim ? "claimable" : ""} rarity-${character.rarity}"
+      type="button"
+      data-character-card="${character.id}"
+      disabled
+    >
+      ${isOwned ? getCharacterImageMarkup(character, label, "collection-character-image") : `<span class="locked-character-mark">?</span>`}
+      <span>${isOwned ? label : "???"}</span>
+      <em>${rarityLabel}</em>
+      <small>${getCharacterCardStatus(character, isOwned, false, unlockInfo)}</small>
+    </button>
+  `;
+}
+
+function getUnlockInfo(character) {
+  if (character.unlockType === "item") {
+    const item = getItemById(character.requiredItem);
+    const itemName = item ? (state.language === "en" ? item.enName : item.name) : character.requiredItem;
+    return {
+      canClaim: false,
+      text: `${t("需要物品")}：${itemName}`,
+      progress: gameState.ownedItems.includes(character.requiredItem) ? t("已擁有") : t("物品寶箱可獲得"),
+    };
+  }
+  if (character.unlockType === "level") {
+    return {
+      canClaim: gameState.level >= character.requiredLevel,
+      text: `Lv.${character.requiredLevel} 解鎖`,
+      progress: `${Math.min(gameState.level, character.requiredLevel)} / ${character.requiredLevel}`,
+    };
+  }
+  if (character.unlockType === "achievement") {
+    const current = Number(gameState.stats[character.statKey]) || 0;
+    return {
+      canClaim: current >= character.requiredCorrect,
+      text: `${getStatLabel(character.statKey)}答對 ${character.requiredCorrect} 題`,
+      progress: `${Math.min(current, character.requiredCorrect)} / ${character.requiredCorrect}`,
+    };
+  }
+  return { canClaim: false, text: "", progress: "" };
+}
+
+function getCharacterCardStatus(character, isOwned, isSelected, unlockInfo) {
+  if (isOwned) return state.language === "en" ? "Collected" : "已收集";
+  if (unlockInfo.canClaim) return state.language === "en" ? "Claim" : "可領取";
+  if (!character.unlockType) return t("寶箱可獲得");
+  return `${unlockInfo.text}・${unlockInfo.progress}`;
+}
+
+function renderItemInventory() {
+  if (!itemGrid) return;
+  const rarityGroups = [
+    { rarity: "common", title: t("普通角色") },
+    { rarity: "rare", title: t("稀有角色") },
+    { rarity: "epic", title: t("史詩角色") },
+    { rarity: "legendary", title: t("傳說角色") },
+  ];
+
+  itemGrid.innerHTML = rarityGroups.map((group, index) => {
+    const items = itemCatalog.filter((item) => item.rarity === group.rarity);
+    const ownedCount = items.filter((item) => gameState.ownedItems.includes(item.id)).length;
+    if (!items.length) return "";
+    return `
+      <details class="item-rarity-group rarity-${group.rarity}" ${index < 2 ? "open" : ""}>
+        <summary>
+          <strong>${group.title}</strong>
+          <span>${ownedCount}/${items.length}</span>
+        </summary>
+        <div class="item-rarity-grid">
+          ${items.map(renderItemCard).join("")}
+        </div>
+      </details>
+    `;
+  }).join("");
+
+  itemGrid.querySelectorAll("[data-item-card]").forEach((button) => {
+    button.addEventListener("click", () => equipItem(button.dataset.itemCard));
   });
+}
+
+function renderItemCard(item) {
+    const isOwned = gameState.ownedItems.includes(item.id);
+    const isEquipped = gameState.equippedItem === item.id;
+    const itemName = state.language === "en" ? item.enName : item.name;
+    const rarityLabel = t(RARITY_LABELS[item.rarity] || RARITY_LABELS.common);
+    const character = getCharacterById(getItemCharacterId(item));
+    const characterName = state.language === "en" ? character.enName : character.name;
+    const status = isEquipped
+      ? t("已裝備")
+      : isOwned ? t("裝備") : t("物品寶箱可獲得");
+    const iconMarkup = isOwned
+      ? (item.iconImage ? `<img src="${item.iconImage}" alt="" aria-hidden="true" />` : item.icon || "?")
+      : "?";
+    return `
+      <button
+        class="item-card ${isOwned ? "" : "locked"} ${isEquipped ? "equipped" : ""} rarity-${item.rarity}"
+        type="button"
+        data-item-card="${item.id}"
+        ${isOwned ? "" : "disabled"}
+      >
+        <span class="item-icon ${isOwned ? "" : "item-icon-locked"}">${iconMarkup}</span>
+        <strong>${isOwned ? itemName : "???"}</strong>
+        <em>${rarityLabel}</em>
+        <small>${t("解鎖角色")}：${characterName}</small>
+        <small>${status}</small>
+      </button>
+    `;
+}
+
+function equipItem(itemId) {
+  const item = getItemById(itemId);
+  if (!item || !gameState.ownedItems.includes(itemId)) {
+    return;
+  }
+  gameState.equippedItem = itemId;
+  saveCharacterState();
+  renderCharacterPanel();
+  const itemName = state.language === "en" ? item.enName : item.name;
+  chestMessage.textContent = state.language === "en" ? `Equipped: ${itemName}` : `已裝備：${itemName}`;
+  playEquipSound(item.rarity);
+  scrollToAvatarPreview();
+}
+
+function getStatLabel(statKey) {
+  const labels = {
+    addCorrect: "加法",
+    subtractCorrect: "減法",
+    multiplyCorrect: "乘法",
+    divideCorrect: "除法",
+  };
+  return labels[statKey] || "";
+}
+
+function claimRewardCharacter(character) {
+  const unlockInfo = getUnlockInfo(character);
+  if (!character.unlockType || !unlockInfo.canClaim || gameState.unlockedCharacters.includes(character.id)) {
+    return;
+  }
+  gameState.unlockedCharacters.push(character.id);
+  if (!gameState.claimedRewards.includes(character.id)) {
+    gameState.claimedRewards.push(character.id);
+  }
+  saveCharacterState();
+  renderCharacterPanel();
 }
 
 function getAvailableAccessories() {
@@ -1161,7 +1760,7 @@ function equipAccessory(accessoryId) {
 
 function openChest() {
   if (gameState.gold < CHEST_COST || !state.character) {
-    chestMessage.textContent = t("需要 50 金幣才能抽寶箱。");
+    chestMessage.textContent = t("需要 10 金幣才能抽寶箱。");
     return;
   }
   pendingChestCost = CHEST_COST;
@@ -1171,30 +1770,63 @@ function openChest() {
 
 function rollChestReward() {
   const rarity = getRandomRarity();
-  const rarityPool = characterCatalog.filter((character) => character.rarity === rarity);
-  const pool = rarityPool.length > 0 ? rarityPool : characterCatalog;
+  updateGachaPity(rarity);
+  return rollItemReward(rarity);
+}
+
+function rollCharacterReward(rarity) {
+  const gachaCharacters = characterCatalog.filter((character) => !character.unlockType);
+  const rarityPool = gachaCharacters.filter((character) => character.rarity === rarity);
+  const pool = rarityPool.length > 0 ? rarityPool : gachaCharacters;
   const character = pool[randomInt(0, pool.length - 1)];
-  const isDuplicate = gameState.unlockedCharacters.includes(character.id);
+  const isDuplicate = isCharacterUnlocked(character.id);
+  const duplicateGold = Math.floor(CHEST_COST * 0.5);
 
   if (isDuplicate) {
-    gameState.gold += 3;
+    gameState.gold += duplicateGold;
   } else {
     gameState.unlockedCharacters.push(character.id);
-    state.character = character.id;
   }
 
   return {
+    type: "character",
     item: character,
     character,
     rarity: character.rarity || rarity,
     isDuplicate,
-    goldBonus: isDuplicate ? 3 : 0,
+    goldBonus: isDuplicate ? duplicateGold : 0,
+  };
+}
+
+function rollItemReward(rarity) {
+  const rarityPool = itemCatalog.filter((item) => item.rarity === rarity);
+  const pool = rarityPool.length > 0 ? rarityPool : itemCatalog;
+  const unownedPool = pool.filter((item) => !gameState.ownedItems.includes(item.id));
+  const drawPool = unownedPool.length > 0 ? unownedPool : pool;
+  const rewardItem = drawPool[randomInt(0, drawPool.length - 1)];
+  const isDuplicate = gameState.ownedItems.includes(rewardItem.id);
+  const duplicateGold = Math.floor(CHEST_COST * 0.5);
+
+  if (isDuplicate) {
+    gameState.gold += duplicateGold;
+  } else {
+    gameState.ownedItems.push(rewardItem.id);
+  }
+
+  return {
+    type: "item",
+    item: rewardItem,
+    character: getCharacterById(getItemCharacterId(rewardItem)),
+    rarity: rewardItem.rarity || rarity,
+    isDuplicate,
+    goldBonus: isDuplicate ? duplicateGold : 0,
   };
 }
 
 function formatChestRewardText(reward) {
   if (!reward.item) {
-    return state.language === "en" ? "Duplicate reward converted to +3 coins." : "重複獎勵轉換為金幣 +3。";
+    const duplicateGold = Math.floor(CHEST_COST * 0.5);
+    return state.language === "en" ? `Duplicate reward converted to +${duplicateGold} coins.` : `重複獎勵轉換為金幣 +${duplicateGold}。`;
   }
 
   const itemName = state.language === "en" ? reward.item.enName : reward.item.name;
@@ -1206,8 +1838,8 @@ function formatChestRewardText(reward) {
   }
 
   return state.language === "en"
-    ? `New character: ${itemName} (${rarityLabel})`
-    : `抽到新角色 ${itemName}（${rarityLabel}）！`;
+    ? `New gear: ${itemName} (${rarityLabel})`
+    : `抽到新裝備 ${itemName}（${rarityLabel}）！`;
 }
 
 function showRewardChest() {
@@ -1215,22 +1847,45 @@ function showRewardChest() {
     return;
   }
 
+  resetChestAnimation();
   rewardChestOverlay.classList.remove("hidden");
   rewardChestButton.disabled = false;
-  rewardChestButton.classList.remove("opened", "opening");
-  rewardChestOverlay.classList.remove("is-opening", "is-legendary");
+  rewardChestButton.classList.remove("opened", "opening", "stage-2", "stage-3", "stage-4");
+  rewardChestOverlay.classList.remove("is-opening", "is-epic", "is-legendary");
   rewardChestHint.textContent = state.language === "en" ? "Tap the chest to open" : "點擊寶箱開啟";
   rewardChestResult.className = "reward-chest-result hidden";
   rewardChestResult.innerHTML = "";
   rewardChestCloseButton.classList.add("hidden");
+  setChestStage(0);
 }
 
 function hideRewardChest() {
   if (!rewardChestOverlay) {
     return;
   }
+  resetChestAnimation();
   rewardChestOverlay.classList.add("hidden");
-  rewardChestOverlay.classList.remove("is-opening", "is-legendary");
+  rewardChestOverlay.classList.remove("is-opening", "is-epic", "is-legendary");
+}
+
+function setChestStage(stageIndex) {
+  if (!rewardChestImage) {
+    return;
+  }
+  const clampedIndex = Math.max(0, Math.min(stageIndex, CHEST_IMAGE_STAGES.length - 1));
+  rewardChestImage.src = CHEST_IMAGE_STAGES[clampedIndex];
+  rewardChestButton.classList.toggle("stage-2", clampedIndex === 1);
+  rewardChestButton.classList.toggle("stage-3", clampedIndex === 2);
+  rewardChestButton.classList.toggle("stage-4", clampedIndex === 3);
+}
+
+function resetChestAnimation() {
+  chestAnimationTimers.forEach((timerId) => window.clearTimeout(timerId));
+  chestAnimationTimers = [];
+  setChestStage(0);
+  if (rewardChestButton) {
+    rewardChestButton.classList.remove("opened", "opening", "stage-2", "stage-3", "stage-4");
+  }
 }
 
 function prepareResultChest(questionCount) {
@@ -1257,7 +1912,7 @@ function openRewardChest() {
   }
   if (pendingChestCost > 0) {
     if (gameState.gold < pendingChestCost) {
-      rewardChestHint.textContent = t("需要 50 金幣才能抽寶箱。");
+      rewardChestHint.textContent = t("需要 10 金幣才能抽寶箱。");
       return;
     }
     gameState.gold -= pendingChestCost;
@@ -1273,18 +1928,30 @@ function openRewardChest() {
   rewardChestHint.textContent = t("寶箱打開中...");
   playChestSound("opening");
 
-  window.setTimeout(() => {
-    const reward = rollChestReward();
-    saveCharacterState();
-    renderCharacterPanel();
-    updateTopCoins();
-    rewardChestButton.classList.remove("opening");
-    rewardChestButton.classList.add("opened");
-    rewardChestOverlay.classList.remove("is-opening");
-    rewardChestOverlay.classList.toggle("is-legendary", reward.rarity === "legendary");
-    renderRewardChestResult(reward);
-    playChestSound(reward.rarity);
-  }, 500);
+  chestAnimationTimers = [
+    window.setTimeout(() => {
+      rewardChestButton.classList.add("stage-3");
+      playChestSound("common");
+    }, 280),
+    window.setTimeout(() => {
+      setChestStage(3);
+      playChestSound("rare");
+    }, 820),
+    window.setTimeout(() => {
+      const reward = rollChestReward();
+      saveCharacterState();
+      renderCharacterPanel();
+      updateTopCoins();
+      rewardChestButton.classList.remove("opening");
+      rewardChestButton.classList.add("opened");
+      rewardChestOverlay.classList.remove("is-opening");
+      rewardChestOverlay.classList.toggle("is-epic", reward.rarity === "epic");
+      rewardChestOverlay.classList.toggle("is-legendary", reward.rarity === "legendary");
+      renderRewardChestResult(reward);
+      playChestSound(reward.rarity);
+      chestAnimationTimers = [];
+    }, 1220),
+  ];
 }
 
 function renderRewardChestResult(reward) {
@@ -1292,15 +1959,21 @@ function renderRewardChestResult(reward) {
   const itemName = reward.item
     ? (state.language === "en" ? reward.item.enName : reward.item.name)
     : (state.language === "en" ? "Coins" : "金幣");
+  const unlockedCharacterName = reward.character
+    ? (state.language === "en" ? reward.character.enName : reward.character.name)
+    : "";
   const duplicateText = reward.isDuplicate
     ? (state.language === "en" ? `Already owned. +${reward.goldBonus} coins!` : `已擁有，轉換金幣 +${reward.goldBonus}！`)
-    : (state.language === "en" ? "Added to inventory!" : "已加入裝備收藏！");
+    : `${t("已解鎖造型")}：${unlockedCharacterName}`;
+  const rewardVisual = reward.item?.iconImage
+    ? `<img class="reward-item-image" src="${reward.item.iconImage}" alt="${itemName}" />`
+    : `<span class="reward-item-icon">${reward.item?.icon || "?"}</span>`;
 
   rewardChestHint.textContent = state.language === "en" ? "Reward earned" : "獲得獎勵";
   rewardChestResult.className = `reward-chest-result rarity-${reward.rarity}`;
   rewardChestResult.innerHTML = `
     <span>${rarityLabel}</span>
-    ${reward.character ? `<img class="reward-character-image" src="${reward.character.image}" alt="${itemName}" />` : ""}
+    ${rewardVisual}
     <strong>${itemName}</strong>
     <em>${duplicateText}</em>
   `;
@@ -1310,11 +1983,28 @@ function renderRewardChestResult(reward) {
 }
 
 function getRandomRarity() {
+  if (gameState.gachaPity.sinceLegendary >= 79) {
+    return "legendary";
+  }
+  if (gameState.gachaPity.sinceEpic >= 29) {
+    return "epic";
+  }
   const rand = Math.random();
-  if (rand < 0.70) return "common";
-  if (rand < 0.95) return "rare";
-  if (rand < 0.98) return "legendary";
-  return "common";
+  if (rand < 0.60) return "common";
+  if (rand < 0.87) return "rare";
+  if (rand < 0.97) return "epic";
+  return "legendary";
+}
+
+function updateGachaPity(rarity) {
+  gameState.gachaPity.sinceEpic += 1;
+  gameState.gachaPity.sinceLegendary += 1;
+  if (rarity === "epic" || rarity === "legendary") {
+    gameState.gachaPity.sinceEpic = 0;
+  }
+  if (rarity === "legendary") {
+    gameState.gachaPity.sinceLegendary = 0;
+  }
 }
 
 function gmAddCoins() {
@@ -1324,8 +2014,18 @@ function gmAddCoins() {
   renderCharacterPanel();
 }
 
+function gmLevelUp() {
+  const nextLevel = gameState.level + 1;
+  gameState.xp = Math.max(gameState.xp, getTotalXpForLevel(nextLevel));
+  gameState.level = getLevelFromXp(gameState.xp);
+  chestMessage.textContent = state.language === "en" ? `GM: level up to Lv.${gameState.level}.` : `GM：等級提升到 Lv.${gameState.level}。`;
+  saveCharacterState();
+  renderCharacterPanel();
+}
+
 function gmUnlockAll() {
   gameState.unlockedCharacters = characterCatalog.map((character) => character.id);
+  gameState.ownedItems = itemCatalog.map((item) => item.id);
   chestMessage.textContent = state.language === "en" ? "GM: all characters unlocked." : "GM：已解鎖全部角色。";
   saveCharacterState();
   renderCharacterPanel();
@@ -1339,6 +2039,21 @@ function gmOpenChest() {
   openChest();
 }
 
+function gmCycleMonster() {
+  const key = "mathPracticeMonsterIndex";
+  const current = Number(localStorage.getItem(key)) || 0;
+  const next = (current + 1) % monsterTypes.length;
+  localStorage.setItem(key, String(next));
+  const monster = monsterTypes[next];
+  chestMessage.textContent = state.language === "en"
+    ? `GM: next monster is ${monster.name}.`
+    : `GM：下一隻怪物是 ${monster.name}。`;
+  if (!monsterView.classList.contains("hidden")) {
+    state.monsterTypeIndex = next;
+    renderMonsterEnemy();
+  }
+}
+
 function gmResetCharacter() {
   state.character = null;
   gameState.gold = 0;
@@ -1350,7 +2065,12 @@ function gmResetCharacter() {
   gameState.combo = 0;
   gameState.xp = 0;
   gameState.level = 1;
-  chestMessage.textContent = t("完成 10 題可獲得 1G。");
+  gameState.stats = { addCorrect: 0, subtractCorrect: 0, multiplyCorrect: 0, divideCorrect: 0 };
+  gameState.claimedRewards = [];
+  gameState.ownedItems = [];
+  gameState.equippedItem = null;
+  gameState.gachaPity = { sinceEpic: 0, sinceLegendary: 0 };
+  chestMessage.textContent = t("完成 10 題可獲得金幣與 XP。");
   saveCharacterState();
   renderCharacterPanel();
 }
@@ -1360,17 +2080,22 @@ function awardPracticeRewards(questionCount, correctCount) {
     return;
   }
   const earnedGold = Math.max(1, correctCount * 2 + Math.floor(questionCount / 5));
-  const earnedXp = Math.max(5, correctCount * 5 + questionCount * 2);
   const wasPerfect = correctCount === questionCount;
-  gameState.gold += earnedGold;
+  const perfectXpBonus = wasPerfect && questionCount === TOTAL_QUESTIONS ? 5 : 0;
+  const earnedXp = Math.max(5, correctCount * 2 + 5 + perfectXpBonus);
+  const perfectBonus = wasPerfect && questionCount === TOTAL_QUESTIONS ? PERFECT_BONUS_GOLD : 0;
+  gameState.gold += earnedGold + perfectBonus;
   gameState.xp += earnedXp;
   gameState.level = getLevelFromXp(gameState.xp);
   gameState.streak = wasPerfect ? gameState.streak + 1 : 0;
   chestMessage.textContent = state.language === "en"
-    ? `Reward: +${earnedGold} coins, +${earnedXp} XP`
-    : `獲得獎勵：金幣 +${earnedGold}，XP +${earnedXp}`;
+    ? `Reward: +${earnedGold + perfectBonus} coins, +${earnedXp} XP${perfectBonus ? " (Perfect +3)" : ""}`
+    : `獲得獎勵：金幣 +${earnedGold + perfectBonus}，XP +${earnedXp}${perfectBonus ? "（全對 +3）" : ""}`;
   saveCharacterState();
   renderCharacterPanel();
+  if (perfectBonus > 0) {
+    window.setTimeout(() => showPerfectBonusEffect(), 240);
+  }
 }
 
 function awardCorrectAnswerCoin(sourceElement) {
@@ -1384,11 +2109,26 @@ function awardCorrectAnswerCoin(sourceElement) {
   showCoinFly(sourceElement);
 }
 
-function registerCorrectAnswer(sourceElement) {
+function registerCorrectAnswer(sourceElement, operation) {
   state.currentCombo += 1;
   gameState.combo = Math.max(gameState.combo, state.currentCombo);
+  recordCorrectOperation(operation);
   awardCorrectAnswerCoin(sourceElement);
   showComboPop(sourceElement);
+}
+
+function recordCorrectOperation(operation) {
+  const statKeyByOperation = {
+    add: "addCorrect",
+    subtract: "subtractCorrect",
+    multiply: "multiplyCorrect",
+    divide: "divideCorrect",
+  };
+  const statKey = statKeyByOperation[operation];
+  if (!statKey) {
+    return;
+  }
+  gameState.stats[statKey] = (Number(gameState.stats[statKey]) || 0) + 1;
 }
 
 function resetCurrentCombo() {
@@ -1424,12 +2164,12 @@ function showComboPop(sourceElement) {
 
 function getComboAnchor(sourceElement) {
   if (!quizView.classList.contains("hidden")) return questionText;
-  if (!monsterView.classList.contains("hidden")) return monsterQuestion;
+  if (!monsterView.classList.contains("hidden")) return monsterEnemy;
   if (!puzzleView.classList.contains("hidden")) return puzzleQuestion;
   return sourceElement;
 }
 
-function showCoinFly(sourceElement) {
+function showCoinFly(sourceElement, amount = 1) {
   const coinTarget = coinText;
   if (!sourceElement || !coinTarget) {
     return;
@@ -1439,7 +2179,7 @@ function showCoinFly(sourceElement) {
   const targetRect = coinTarget.getBoundingClientRect();
   const coin = document.createElement("div");
   coin.className = "coin-fly";
-  coin.innerHTML = `<span class="coin-symbol" aria-hidden="true"></span><strong>+1</strong>`;
+  coin.innerHTML = `<span class="coin-symbol" aria-hidden="true"></span><strong>+${amount}</strong>`;
   const startX = sourceRect.left + sourceRect.width / 2;
   const startY = sourceRect.top + sourceRect.height / 2;
   const endX = targetRect.left + targetRect.width / 2;
@@ -1450,6 +2190,23 @@ function showCoinFly(sourceElement) {
   coin.style.setProperty("--coin-dy", `${endY - startY}px`);
   document.body.appendChild(coin);
   window.setTimeout(() => coin.remove(), 900);
+}
+
+function showPerfectBonusEffect() {
+  const anchor = !resultView.classList.contains("hidden") ? resultScore : coinText;
+  if (!anchor) {
+    return;
+  }
+  const rect = anchor.getBoundingClientRect();
+  const bonus = document.createElement("div");
+  bonus.className = "perfect-bonus-pop";
+  bonus.innerHTML = `<span>${t("完美獎勵")}</span><strong>+${PERFECT_BONUS_GOLD}</strong>`;
+  bonus.style.left = `${rect.left + rect.width / 2}px`;
+  bonus.style.top = `${Math.max(86, rect.top - 18)}px`;
+  document.body.appendChild(bonus);
+  showCoinFly(anchor, PERFECT_BONUS_GOLD);
+  playChestSound("rare");
+  window.setTimeout(() => bonus.remove(), 1600);
 }
 
 function startQuiz() {
@@ -1513,31 +2270,42 @@ function startQuiz() {
 
 function updateSetupMode() {
   const practiceMode = document.querySelector("input[name='practiceMode']:checked").value;
-  const effectiveMode = practiceMode;
+  const miniGameOperation = document.querySelector("input[name='miniGameOperation']:checked")?.value || "add";
+  const effectiveMode = practiceMode === "miniGames" ? miniGameOperation : practiceMode;
   const isArithmetic = effectiveMode === "add" || effectiveMode === "subtract";
   miniGameSettings.classList.toggle("hidden", practiceMode !== "miniGames");
-  arithmeticSettings.classList.toggle("hidden", !isArithmetic);
+  arithmeticSettings.classList.toggle("hidden", !(isArithmetic || practiceMode === "miniGames"));
   practiceOptions.classList.toggle("hidden", practiceMode === "miniGames");
-  addDifficultySettings.classList.toggle("hidden", effectiveMode !== "add");
-  subtractDifficultySettings.classList.toggle("hidden", effectiveMode !== "subtract");
-  multiplySettings.classList.toggle("hidden", effectiveMode !== "multiply");
-  divideSettings.classList.toggle("hidden", effectiveMode !== "divide");
+  addDifficultySettings.classList.toggle("hidden", !(effectiveMode === "add" || effectiveMode === "mixed"));
+  subtractDifficultySettings.classList.toggle("hidden", !(effectiveMode === "subtract" || effectiveMode === "mixed"));
+  multiplySettings.classList.toggle("hidden", !(effectiveMode === "multiply" || effectiveMode === "mixed"));
+  divideSettings.classList.toggle("hidden", !(effectiveMode === "divide" || effectiveMode === "mixed"));
   updateStartButtonText();
+  updatePracticeSummary();
 }
 
 function updateStartButtonText() {
   const practiceMode = document.querySelector("input[name='practiceMode']:checked").value;
   const multiplyMode = document.querySelector("input[name='multiplyMode']:checked").value;
   const miniGameMode = document.querySelector("input[name='miniGameMode']:checked").value;
+  const setStartText = (text) => {
+    startButton.textContent = text;
+    bottomStartButton.textContent = text;
+    lobbyStartButton.textContent = text;
+  };
   if (practiceMode === "multiply" && multiplyMode.startsWith("recite-")) {
-    startButton.textContent = t("開始背誦");
+    setStartText(t("開始背誦"));
   } else if (practiceMode === "miniGames") {
-    startButton.textContent = miniGameMode === "puzzle" ? t("開始解鎖") : t("開始遊戲");
+    setStartText(miniGameMode === "puzzle" ? t("開始解鎖") : t("開始遊戲"));
   } else {
-    startButton.textContent = timedModeToggle.checked
+    setStartText(timedModeToggle.checked
       ? state.language === "en" ? `Start ${getTimeLimitSeconds()} Seconds` : `開始 ${getTimeLimitSeconds()} 秒`
-      : t("開始 10 題");
+      : t("開始 10 題"));
+    lobbyStartButton.textContent = timedModeToggle.checked
+      ? lobbyStartButton.textContent
+      : "開始冒險";
   }
+  updatePracticeSummary();
 }
 
 function getTimeLimitSeconds() {
@@ -1572,6 +2340,7 @@ function showSetup() {
   setupView.classList.remove("hidden");
   puzzleResultButton.classList.add("hidden");
   updateTopCoins();
+  renderLobby();
   timerText.classList.add("hidden");
   setWritingDisabled(false);
   clearWriting();
@@ -1659,7 +2428,7 @@ function renderMonsterEnemy() {
   monsterEnemy.className = `monster monster-${monster.id}`;
   monsterEnemy.setAttribute("aria-label", monster.name);
   monsterEnemy.innerHTML = `
-    ${makeMonsterSvg(monster.id)}
+    ${monster.image ? `<img class="monster-art monster-image" src="${monster.image}" alt="" aria-hidden="true" />` : makeMonsterSvg(monster.id)}
     <span class="monster-name">${monster.name}</span>
   `;
 }
@@ -1730,49 +2499,14 @@ function makeMonsterQuestion() {
 
 function makeMiniGameQuestion(gameType) {
   const selectedOperation = state.miniGameOperation || "add";
-  const operations = ["add", "subtract", "multiply"];
+  const operations = ["add", "subtract", "multiply", "divide"];
   const operation = selectedOperation === "mixed"
     ? operations[randomInt(0, operations.length - 1)]
     : selectedOperation;
-
-  if (operation === "multiply") {
-    const a = randomInt(2, 9);
-    const b = randomInt(2, 9);
-    const answer = a * b;
-    return {
-      text: `${a} × ${b} = ?`,
-      answer,
-      operation,
-      a,
-      b,
-      choices: makeChoices(answer),
-    };
-  }
-
-  if (operation === "add") {
-    const a = randomInt(1, 20);
-    const b = randomInt(1, 20);
-    const answer = a + b;
-    return {
-      text: `${a} + ${b} = ?`,
-      answer,
-      operation,
-      a,
-      b,
-      choices: makeChoices(answer),
-    };
-  }
-
-  const a = randomInt(6, 30);
-  const b = randomInt(1, a - 1);
-  const answer = a - b;
+  const question = makeQuestion(operation, state.digits, state.multiplyMode, state.divideMode);
   return {
-    text: `${a} - ${b} = ?`,
-    answer,
-    operation,
-    a,
-    b,
-    choices: makeChoices(answer),
+    ...question,
+    choices: makeChoices(question.answer),
   };
 }
 
@@ -1826,7 +2560,7 @@ function checkMonsterAnswer(choice) {
     monsterFeedback.textContent = t("打中了！");
     monsterFeedback.className = "feedback feedback-card correct";
     playMonsterAttackAnimation();
-    registerCorrectAnswer(monsterEnemy);
+    registerCorrectAnswer(monsterEnemy, state.monsterQuestion.operation);
     playFeedbackSound(true);
   } else {
     resetCurrentCombo();
@@ -1930,6 +2664,9 @@ function nextPuzzleQuestion() {
 }
 
 function pickPuzzleImage() {
+  if (puzzleAssets.length > 0) {
+    return puzzleAssets[randomInt(0, puzzleAssets.length - 1)];
+  }
   const images = [
     { name: "小貓", enName: "Cat", theme: "cat" },
     { name: "恐龍", enName: "Dinosaur", theme: "dino" },
@@ -2073,7 +2810,7 @@ function checkPuzzleAnswer(choice) {
     state.score = state.puzzleScore;
     puzzleFeedback.textContent = t("解鎖一片！");
     puzzleFeedback.className = "feedback feedback-card correct";
-    registerCorrectAnswer(puzzleBoard);
+    registerCorrectAnswer(puzzleBoard, state.puzzleQuestion.operation);
     playFeedbackSound(true);
   } else {
     resetCurrentCombo();
@@ -2276,7 +3013,7 @@ function checkAnswer(event) {
     feedbackText.textContent = t("答對了！");
     feedbackText.className = "feedback feedback-card correct";
     submitAnswerButton.disabled = true;
-    registerCorrectAnswer(answerForm);
+    registerCorrectAnswer(answerForm, state.question.operation);
     playFeedbackSound(true);
   } else {
     resetCurrentCombo();
@@ -2328,6 +3065,9 @@ function showResult() {
 
 function updateTopCoins() {
   coinText.innerHTML = formatCoinDisplay(gameState.gold);
+  if (lobbyChestButton) {
+    lobbyChestButton.disabled = gameState.gold < CHEST_COST || !state.character;
+  }
 }
 
 function formatCoinDisplay(coins) {
@@ -2482,7 +3222,7 @@ function renderLongDivisionQuestion(question) {
 }
 
 function pickOperation() {
-  const operations = ["add", "subtract"];
+  const operations = ["add", "subtract", "multiply", "divide"];
   return operations[randomInt(0, operations.length - 1)];
 }
 
@@ -2667,6 +3407,7 @@ function playChestSound(stage) {
     opening: [196, 246.94, 293.66],
     common: [392, 523.25],
     rare: [523.25, 659.25, 783.99],
+    epic: [493.88, 622.25, 739.99, 987.77],
     legendary: [523.25, 659.25, 783.99, 1046.5, 1318.51],
   };
   const notes = noteSets[stage] || noteSets.common;
@@ -2683,6 +3424,49 @@ function playChestSound(stage) {
     gain.connect(audioContext.destination);
     oscillator.start(start);
     oscillator.stop(start + (stage === "legendary" ? 0.24 : 0.16));
+  });
+}
+
+function playEquipSound(rarity = "common") {
+  if (!state.soundEnabled) {
+    return;
+  }
+
+  audioContext ??= new (window.AudioContext || window.webkitAudioContext)();
+  const now = audioContext.currentTime;
+  const settings = {
+    common: { start: 520, end: 980, duration: 0.2, sparkles: [1244.51, 1567.98], volume: 0.08 },
+    rare: { start: 560, end: 1320, duration: 0.26, sparkles: [1396.91, 1760, 2093], volume: 0.1 },
+    epic: { start: 620, end: 1660, duration: 0.34, sparkles: [1567.98, 2093, 2637.02, 3135.96], volume: 0.115 },
+    legendary: { start: 700, end: 2200, duration: 0.44, sparkles: [1760, 2349.32, 2793.83, 3520, 4186.01], volume: 0.13 },
+  };
+  const sound = settings[rarity] || settings.common;
+  const sweep = audioContext.createOscillator();
+  const sweepGain = audioContext.createGain();
+  sweep.type = "triangle";
+  sweep.frequency.setValueAtTime(sound.start, now);
+  sweep.frequency.exponentialRampToValueAtTime(sound.end, now + sound.duration);
+  sweepGain.gain.setValueAtTime(0.0001, now);
+  sweepGain.gain.exponentialRampToValueAtTime(sound.volume, now + 0.025);
+  sweepGain.gain.exponentialRampToValueAtTime(0.0001, now + sound.duration);
+  sweep.connect(sweepGain);
+  sweepGain.connect(audioContext.destination);
+  sweep.start(now);
+  sweep.stop(now + sound.duration + 0.02);
+
+  sound.sparkles.forEach((frequency, index) => {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const start = now + 0.055 + index * (rarity === "legendary" ? 0.055 : 0.045);
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(frequency, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(sound.volume * 0.72, start + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.09);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start(start);
+    oscillator.stop(start + 0.105);
   });
 }
 
